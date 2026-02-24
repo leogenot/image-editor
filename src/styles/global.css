@@ -1,0 +1,37 @@
+@import "tailwindcss";
+@import "@fontsource/space-mono/400.css";
+@import "@fontsource/space-mono/700.css";
+
+@theme {
+  --font-mono: 'Space Mono', ui-monospace, monospace;
+}
+
+[x-cloak] { display: none !important; }
+
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+html, body {
+  background: #000;
+  color: #fff;
+  font-family: 'Space Mono', monospace;
+  overflow: hidden;
+  height: 100%;
+  width: 100%;
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
