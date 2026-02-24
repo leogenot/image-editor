@@ -1,0 +1,65 @@
+---
+interface Props {
+  label: string
+  storeKey: string   // Alpine.js expression e.g. "$store.editor.light.exposure"
+  min?: number
+  max?: number
+  step?: number
+  decimals?: number
+}
+const {
+  label,
+  storeKey,
+  min = -1,
+  max = 1,
+  step = 0.01,
+  decimals = 2,
+} = Astro.props
+---
+<div class="py-2.5 border-b border-white/[0.04] last:border-0">
+  <div class="flex justify-between items-baseline mb-2">
+    <span class="font-mono text-[9px] uppercase tracking-[0.15em] text-white/40">{label}</span>
+    <span
+      class="font-mono text-[10px] text-white tabular-nums"
+      x-text={`(${storeKey} > 0 ? '+' : '') + Number(${storeKey}).toFixed(${decimals})`}
+    ></span>
+  </div>
+
+  <!-- Slider track + thumb container (44px touch target) -->
+  <div class="relative h-11 flex items-center" x-data>
+    <!-- Track background -->
+    <div class="absolute inset-x-0 top-1/2 -translate-y-1/2 h-px bg-white/[0.12]"></div>
+
+    <!-- Filled track portion -->
+    <!-- Bipolar (centered): fills from center toward thumb -->
+    <!-- We use a div sized/positioned by the current value -->
+    <div
+      class="absolute top-1/2 -translate-y-1/2 h-px bg-white/70"
+      :style="`
+        left: ${Math.min(50, 50 + (${storeKey} / (${max} - ${min})) * 100)}%;
+        right: ${100 - Math.max(50, 50 + (${storeKey} / (${max} - ${min})) * 100)}%;
+      `"
+    ></div>
+
+    <!-- Center tick mark -->
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-px h-2 bg-white/20"></div>
+
+    <!-- Custom thumb -->
+    <div
+      class="absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-white rounded-sm pointer-events-none -translate-x-1/2"
+      :style="`left: ${50 + (${storeKey} / (${max} - ${min})) * 100}%`"
+    ></div>
+
+    <!-- Actual range input (invisible, full-size touch target) -->
+    <input
+      type="range"
+      class="absolute inset-0 w-full h-full opacity-0 cursor-pointer touch-none"
+      :min={`${min}`}
+      :max={`${max}`}
+      :step={`${step}`}
+      :value={storeKey}
+      x-model.number={storeKey}
+      @change={`$store.editor.pushHistory()`}
+    />
+  </div>
+</div>
