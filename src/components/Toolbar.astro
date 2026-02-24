@@ -1,0 +1,222 @@
+---
+---
+<!-- Floating glass pill toolbar -->
+<div
+  class="absolute top-safe-top top-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-4 py-2 rounded-full border border-white/[0.08] bg-white/[0.04] backdrop-blur-xl"
+  x-data="toolbar()"
+  x-show="$store.editor.hasImage"
+  x-cloak
+  style="top: max(16px, env(safe-area-inset-top))"
+>
+  <!-- Filename -->
+  <span
+    class="font-mono text-[10px] text-white/50 uppercase tracking-[0.1em] max-w-[100px] truncate"
+    x-text="$store.editor.filename.replace(/\.[^.]+$/, '').toUpperCase().slice(0, 16)"
+  ></span>
+
+  <div class="w-px h-3 bg-white/10 mx-1"></div>
+
+  <!-- Undo -->
+  <button
+    class="w-6 h-6 flex items-center justify-center text-white/40 hover:text-white transition-colors rounded"
+    @click="$store.editor.undo()"
+    title="Undo"
+    aria-label="Undo"
+  >
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+      <path d="M2 5 C2 2.8 3.8 1 6 1 C8.2 1 10 2.8 10 5 C10 7.2 8.2 9 6 9 L4 9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+      <polyline points="2,3 2,6 5,6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </svg>
+  </button>
+
+  <!-- Redo -->
+  <button
+    class="w-6 h-6 flex items-center justify-center text-white/40 hover:text-white transition-colors rounded"
+    @click="$store.editor.redo()"
+    title="Redo"
+    aria-label="Redo"
+  >
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+      <path d="M10 5 C10 2.8 8.2 1 6 1 C3.8 1 2 2.8 2 5 C2 7.2 3.8 9 6 9 L8 9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+      <polyline points="10,3 10,6 7,6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </svg>
+  </button>
+
+  <div class="w-px h-3 bg-white/10 mx-1"></div>
+
+  <!-- Reset -->
+  <button
+    class="font-mono text-[9px] text-white/30 hover:text-white/60 uppercase tracking-[0.1em] transition-colors px-1"
+    @click="$store.editor.resetEdits()"
+  >
+    RESET
+  </button>
+
+  <div class="w-px h-3 bg-white/10 mx-1"></div>
+
+  <!-- Open new image -->
+  <button
+    class="w-6 h-6 flex items-center justify-center text-white/40 hover:text-white transition-colors rounded"
+    @click="openNewImage()"
+    title="Open new image"
+    aria-label="Open new image"
+  >
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+      <rect x="1" y="3" width="10" height="8" rx="1" stroke="currentColor" stroke-width="1.2" fill="none"/>
+      <path d="M4 3 L4 1.5 C4 1.2 4.2 1 4.5 1 L7.5 1 C7.8 1 8 1.2 8 1.5 L8 3" stroke="currentColor" stroke-width="1.2" fill="none"/>
+    </svg>
+  </button>
+
+  <!-- Export button -->
+  <button
+    class="ml-1 px-4 py-1.5 bg-white text-black font-mono text-[9px] uppercase tracking-[0.15em] rounded-full hover:bg-white/90 active:bg-white/80 transition-colors"
+    @click="$store.editor.exportOpen = true"
+  >
+    EXPORT
+  </button>
+</div>
+
+<!-- Export dialog -->
+<div
+  class="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+  x-show="$store.editor.exportOpen"
+  x-cloak
+  @click.self="$store.editor.exportOpen = false"
+  @keydown.escape.window="$store.editor.exportOpen = false"
+>
+  <div
+    class="flex flex-col gap-5 p-6 w-[280px] rounded-2xl border border-white/[0.08] bg-black/90 backdrop-blur-xl"
+    x-data="{ format: 'image/jpeg', quality: 0.92 }"
+  >
+    <div class="flex items-center justify-between">
+      <p class="font-mono text-[10px] text-white/50 uppercase tracking-[0.15em]">Export Image</p>
+      <button
+        class="text-white/30 hover:text-white/60 transition-colors"
+        @click="$store.editor.exportOpen = false"
+      >
+        <svg width="12" height="12" viewBox="0 0 12 12">
+          <line x1="1" y1="1" x2="11" y2="11" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+          <line x1="11" y1="1" x2="1" y2="11" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Format selector -->
+    <div class="flex flex-col gap-2">
+      <label class="font-mono text-[9px] text-white/30 uppercase tracking-[0.1em]">Format</label>
+      <div class="grid grid-cols-3 gap-1.5">
+        <template x-for="f in [
+          { label: 'JPEG', val: 'image/jpeg' },
+          { label: 'PNG',  val: 'image/png' },
+          { label: 'WEBP', val: 'image/webp' },
+        ]">
+          <button
+            class="py-2 font-mono text-[9px] uppercase tracking-wider border rounded-lg transition-all"
+            :class="format === f.val
+              ? 'border-white bg-white text-black'
+              : 'border-white/10 text-white/40 hover:border-white/25'"
+            @click="format = f.val"
+            x-text="f.label"
+          ></button>
+        </template>
+      </div>
+    </div>
+
+    <!-- Quality slider -->
+    <div class="flex flex-col gap-2" x-show="format !== 'image/png'">
+      <div class="flex justify-between">
+        <label class="font-mono text-[9px] text-white/30 uppercase tracking-[0.1em]">Quality</label>
+        <span class="font-mono text-[10px] text-white tabular-nums" x-text="Math.round(quality * 100) + '%'"></span>
+      </div>
+      <input
+        type="range" min="0.5" max="1" step="0.01"
+        x-model.number="quality"
+        class="w-full h-0.5 bg-white/10 rounded-full appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full"
+      />
+    </div>
+
+    <!-- Action buttons -->
+    <div class="flex gap-2 mt-1">
+      <button
+        class="flex-1 py-2.5 font-mono text-[9px] uppercase tracking-[0.1em] border border-white/10 rounded-lg text-white/40 hover:text-white/60 transition-colors"
+        @click="$store.editor.exportOpen = false"
+      >Cancel</button>
+      <button
+        class="flex-1 py-2.5 font-mono text-[9px] uppercase tracking-[0.15em] bg-white text-black rounded-lg hover:bg-white/90 transition-colors"
+        @click="doExport(format, quality)"
+      >Download</button>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden file input for "open new image" -->
+<input
+  id="toolbar-file-input"
+  type="file"
+  class="hidden"
+  accept="image/*,.cr2,.cr3,.nef,.nrw,.arw,.dng,.orf,.rw2,.pef,.raf,.raw,.rwl"
+  @change="handleNewFile($event)"
+/>
+
+<script>
+import Alpine from 'alpinejs'
+import { loadStandardImage, isRawFile } from '../lib/imageLoader.js'
+import { decodeRaw } from '../lib/raw/decoder.js'
+
+Alpine.data('toolbar', () => ({
+  openNewImage() {
+    document.getElementById('toolbar-file-input')?.click()
+  },
+
+  async handleNewFile(event) {
+    const file = event.target.files?.[0]
+    if (!file) return
+    event.target.value = ''
+    const store = Alpine.store('editor')
+    store.filename = file.name
+    try {
+      if (isRawFile(file)) {
+        const { pixels, width, height } = await decodeRaw(file)
+        store.rawPixels = pixels
+        store.width = width
+        store.height = height
+        store.isRaw = true
+        store.hasImage = true
+        store.pushHistory()
+        window.dispatchEvent(new CustomEvent('editor:loadRaw', { detail: { pixels, width, height } }))
+      } else {
+        const { bitmap, width, height } = await loadStandardImage(file)
+        store.imageData = bitmap
+        store.width = width
+        store.height = height
+        store.isRaw = false
+        store.hasImage = true
+        store.pushHistory()
+        window.dispatchEvent(new CustomEvent('editor:loadImage', { detail: { bitmap } }))
+      }
+    } catch (err) {
+      alert(`Failed to load: ${err.message}`)
+    }
+  },
+
+  async doExport(format, quality) {
+    const canvas = document.getElementById('gl-canvas')
+    if (!canvas) return
+    const store = Alpine.store('editor')
+    const ext = format === 'image/png' ? 'png' : format === 'image/webp' ? 'webp' : 'jpg'
+    const basename = store.filename.replace(/\.[^.]+$/, '') || 'edited'
+    canvas.toBlob((blob) => {
+      if (!blob) return
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${basename}_edited.${ext}`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      store.exportOpen = false
+    }, format, quality)
+  },
+}))
+</script>
