@@ -1,0 +1,14 @@
+---
+import Slider from '../Slider.astro'
+---
+<div class="pt-1">
+  <p class="font-mono text-[9px] text-white/25 uppercase tracking-[0.15em] py-2">SHARPENING</p>
+  <Slider label="AMOUNT"    storeKey="$store.editor.detail.sharpness"      min="0" max="1" step="0.01" decimals="2" />
+</div>
+<div class="pt-3">
+  <p class="font-mono text-[9px] text-white/25 uppercase tracking-[0.15em] py-2">NOISE REDUCTION</p>
+  <Slider label="LUMINANCE" storeKey="$store.editor.detail.noiseReduction" min="0" max="1" step="0.01" decimals="2" />
+</div>
+<p class="font-mono text-[8px] text-white/15 uppercase tracking-[0.1em] mt-4 leading-relaxed">
+  Applied as a second render pass.
+</p>
