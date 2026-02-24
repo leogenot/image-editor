@@ -1,0 +1,137 @@
+---
+---
+<div
+  id="dropzone"
+  class="absolute inset-0 flex flex-col items-center justify-center z-10"
+  x-data="dropzone()"
+  x-show="!$store.editor.hasImage"
+  @dragover.prevent="dragging = true"
+  @dragleave.document="dragging = false"
+  @drop.prevent="handleDrop($event)"
+>
+  <!-- Background -->
+  <div class="absolute inset-0 bg-black"></div>
+
+  <!-- Center content -->
+  <div
+    class="relative z-10 flex flex-col items-center gap-6 p-10 border rounded-2xl transition-all duration-200"
+    :class="dragging
+      ? 'border-white/40 bg-white/[0.06]'
+      : 'border-white/[0.08] bg-white/[0.02]'"
+  >
+    <!-- Plus icon -->
+    <div class="w-12 h-12 flex items-center justify-center border border-white/20 rounded-xl">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <line x1="10" y1="3" x2="10" y2="17" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+        <line x1="3" y1="10" x2="17" y2="10" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+      </svg>
+    </div>
+
+    <!-- Text -->
+    <div class="text-center space-y-2">
+      <p class="font-mono text-xs text-white uppercase tracking-[0.15em]">Open Image</p>
+      <p class="font-mono text-[10px] text-white/30 uppercase tracking-[0.1em]">
+        JPEG &middot; PNG &middot; WEBP &middot; RAW
+      </p>
+    </div>
+
+    <!-- Browse button -->
+    <button
+      class="px-6 py-2.5 bg-white text-black font-mono text-[10px] uppercase tracking-[0.15em] rounded-full hover:bg-white/90 active:bg-white/80 transition-colors"
+      @click="$refs.fileInput.click()"
+    >
+      Browse Files
+    </button>
+
+    <!-- Hidden file input -->
+    <input
+      x-ref="fileInput"
+      type="file"
+      class="hidden"
+      accept="image/*,.cr2,.cr3,.nef,.nrw,.arw,.dng,.orf,.rw2,.pef,.raf,.raw,.rwl"
+      @change="handleFileInput($event)"
+    />
+  </div>
+
+  <!-- Drop hint -->
+  <p
+    class="absolute bottom-10 font-mono text-[10px] text-white/20 uppercase tracking-[0.15em] transition-opacity"
+    :class="dragging ? 'opacity-0' : 'opacity-100'"
+  >
+    or drag &amp; drop
+  </p>
+
+  <!-- Loading overlay (shown during RAW decode) -->
+  <div
+    class="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm z-20"
+    x-show="loading"
+    x-cloak
+  >
+    <div class="flex flex-col items-center gap-3">
+      <div class="w-5 h-5 border border-white/30 border-t-white rounded-full animate-spin"></div>
+      <p class="font-mono text-[10px] text-white/50 uppercase tracking-[0.15em]">Decoding RAW...</p>
+    </div>
+  </div>
+</div>
+
+<script>
+import Alpine from 'alpinejs'
+import { loadStandardImage, isRawFile } from '../lib/imageLoader.js'
+import { decodeRaw } from '../lib/raw/decoder.js'
+
+Alpine.data('dropzone', () => ({
+  dragging: false,
+  loading: false,
+
+  async handleDrop(event) {
+    this.dragging = false
+    const file = event.dataTransfer?.files?.[0]
+    if (file) await this.loadFile(file)
+  },
+
+  async handleFileInput(event) {
+    const file = event.target.files?.[0]
+    if (file) await this.loadFile(file)
+    // Reset input so same file can be re-selected
+    event.target.value = ''
+  },
+
+  async loadFile(file) {
+    const store = Alpine.store('editor')
+    store.filename = file.name
+
+    try {
+      if (isRawFile(file)) {
+        this.loading = true
+        const { pixels, width, height } = await decodeRaw(file)
+        store.rawPixels = pixels
+        store.width = width
+        store.height = height
+        store.isRaw = true
+        store.hasImage = true
+        store.pushHistory()
+        window.dispatchEvent(new CustomEvent('editor:loadRaw', {
+          detail: { pixels, width, height }
+        }))
+      } else {
+        const { bitmap, width, height } = await loadStandardImage(file)
+        store.imageData = bitmap
+        store.width = width
+        store.height = height
+        store.isRaw = false
+        store.hasImage = true
+        store.pushHistory()
+        window.dispatchEvent(new CustomEvent('editor:loadImage', {
+          detail: { bitmap }
+        }))
+      }
+    } catch (err) {
+      console.error('Failed to load image:', err)
+      alert(`Failed to load image: ${err.message}`)
+      store.filename = ''
+    } finally {
+      this.loading = false
+    }
+  },
+}))
+</script>
