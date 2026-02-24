@@ -1,5 +1,7 @@
 import type { Alpine } from 'alpinejs'
+// @ts-ignore
+import { createEditorStore } from './lib/store.js'
 
 export default (Alpine: Alpine) => {
-  // Store registrations will be added here in later tasks
+  createEditorStore(Alpine)
 }

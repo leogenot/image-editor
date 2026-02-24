@@ -9,7 +9,30 @@ import '../styles/global.css'
     <meta name="theme-color" content="#000000" />
     <title>EDITOR</title>
   </head>
-  <body class="w-full h-full bg-black" x-data>
-    <p class="text-white p-4" style="font-family: 'Space Mono', monospace; font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em;">EDITOR — SCAFFOLDING OK</p>
+  <body
+    class="w-full h-full bg-black p-4"
+    x-data
+    @keydown.meta.z.window="$store.editor.undo()"
+    @keydown.ctrl.z.window="$store.editor.undo()"
+    @keydown.meta.shift.z.window="$store.editor.redo()"
+    @keydown.ctrl.y.window="$store.editor.redo()"
+  >
+    <p
+      class="text-white text-xs uppercase tracking-widest"
+      style="font-family: 'Space Mono', monospace"
+      x-text="'PANEL: ' + $store.editor.activePanel + ' | EXPOSURE: ' + $store.editor.light.exposure"
+    ></p>
+    <button
+      class="mt-4 px-4 py-2 bg-white text-black text-xs font-mono uppercase tracking-widest rounded-full"
+      @click="$store.editor.light.exposure += 0.5; $store.editor.pushHistory()"
+    >+0.5 EXP</button>
+    <button
+      class="mt-4 ml-2 px-4 py-2 border border-white/30 text-white text-xs font-mono uppercase tracking-widest rounded-full"
+      @click="$store.editor.undo()"
+    >UNDO</button>
+    <button
+      class="mt-4 ml-2 px-4 py-2 border border-white/30 text-white text-xs font-mono uppercase tracking-widest rounded-full"
+      @click="$store.editor.redo()"
+    >REDO</button>
   </body>
 </html>
