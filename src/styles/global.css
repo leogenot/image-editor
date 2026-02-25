@@ -35,3 +35,27 @@ input[type="range"] {
   background: transparent;
   cursor: pointer;
 }
+
+/* iOS safe areas */
+@supports (padding: max(0px)) {
+  .safe-top    { padding-top: max(16px, env(safe-area-inset-top)); }
+  .safe-bottom { padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+}
+
+/* Prevent text selection on interactive controls */
+button, input[type="range"] {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Custom range thumb for webkit */
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 1px;
+  height: 1px;
+}
+
+/* Prevent overscroll bounce on the app shell */
+body {
+  overscroll-behavior: none;
+}
