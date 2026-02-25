@@ -4,7 +4,7 @@
 
 <!-- Floating glass pill toolbar -->
 <div
-  class="absolute top-safe-top top-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-4 py-2 rounded-full border border-black/8 bg-black/4 backdrop-blur-xl"
+  class="absolute top-safe-top top-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-4 py-2 rounded-full border border-white/[0.08] bg-black/50 backdrop-blur-xl"
   x-data="toolbar()"
   x-show="$store.editor.hasImage"
   x-cloak
@@ -12,7 +12,7 @@
 >
   <!-- Filename -->
   <span
-    class="font-mono text-[10px] text-black/50 uppercase tracking-[0.1em] max-w-[100px] truncate"
+    class="font-mono text-[10px] text-white/60 uppercase tracking-[0.1em] max-w-[100px] truncate"
     x-text="$store.editor.filename.replace(/\.[^.]+$/, '').toUpperCase().slice(0, 16)"
   ></span>
 
@@ -20,7 +20,7 @@
 
   <!-- Undo -->
   <button
-    class="w-6 h-6 flex items-center justify-center text-black/40 hover: text-black transition-colors rounded"
+    class="w-6 h-6 flex items-center justify-center text-white/50 hover:text-white transition-colors rounded"
     @click="$store.editor.undo()"
     title="Undo"
     aria-label="Undo"
@@ -44,7 +44,7 @@
 
   <!-- Redo -->
   <button
-    class="w-6 h-6 flex items-center justify-center text-black/40 hover: text-black transition-colors rounded"
+    class="w-6 h-6 flex items-center justify-center text-white/50 hover:text-white transition-colors rounded"
     @click="$store.editor.redo()"
     title="Redo"
     aria-label="Redo"
@@ -70,7 +70,7 @@
 
   <!-- Reset -->
   <button
-    class="font-mono text-[9px] text-black/30 hover: text-black/60 uppercase tracking-[0.1em] transition-colors px-1"
+    class="font-mono text-[9px] text-white/40 hover:text-white/70 uppercase tracking-[0.1em] transition-colors px-1"
     @click="$store.editor.resetEdits()"
   >
     RESET
@@ -80,7 +80,7 @@
 
   <!-- Open new image -->
   <button
-    class="w-6 h-6 flex items-center justify-center text-black/40 hover: text-black transition-colors rounded"
+    class="w-6 h-6 flex items-center justify-center text-white/50 hover:text-white transition-colors rounded"
     @click="openNewImage()"
     title="Open new image"
     aria-label="Open new image"
