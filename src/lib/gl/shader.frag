@@ -21,7 +21,9 @@ uniform float u_saturation;
 
 uniform vec3 u_hsl[8];
 
-uniform sampler2D u_curveLUT;
+uniform sampler2D u_curveLUT_r;
+uniform sampler2D u_curveLUT_g;
+uniform sampler2D u_curveLUT_b;
 uniform bool u_useCurve;
 
 float luma(vec3 c) {
@@ -154,9 +156,9 @@ void main() {
   }
 
   if (u_useCurve) {
-    color.r = texture(u_curveLUT, vec2(color.r, 0.5)).r;
-    color.g = texture(u_curveLUT, vec2(color.g, 0.5)).g;
-    color.b = texture(u_curveLUT, vec2(color.b, 0.5)).b;
+    color.r = texture(u_curveLUT_r, vec2(color.r, 0.5)).r;
+    color.g = texture(u_curveLUT_g, vec2(color.g, 0.5)).g;
+    color.b = texture(u_curveLUT_b, vec2(color.b, 0.5)).b;
   }
 
   color = aces(color);

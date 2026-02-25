@@ -1,8 +1,10 @@
 ---
+
 ---
+
 <div
   id="canvas-container"
-  class="absolute inset-0 overflow-hidden bg-[#0a0a0a]"
+  class="absolute inset-0 overflow-hidden bg-white"
   x-data="canvasView()"
   x-show="$store.editor.hasImage"
   x-cloak
@@ -18,161 +20,188 @@
       cursor: ${panning ? 'grabbing' : 'grab'};
     `"
     @mousedown="startPan($event)"
-    @touchstart.passive="touchStart($event)"
-  ></canvas>
+    @touchstart.passive="touchStart($event)"></canvas>
 </div>
 
 <script>
-import Alpine from 'alpinejs'
-import { Renderer } from '../lib/gl/renderer.js'
-import { setupGestures } from '../lib/gestures.js'
-import { saveSession } from '../lib/storage.js'
+  import Alpine from 'alpinejs'
+  import { Renderer } from '../lib/gl/renderer.js'
+  import { setupGestures } from '../lib/gestures.js'
+  import { saveSession } from '../lib/storage.js'
+  import {
+    computeHistogramFromBitmap,
+    computeHistogramFromRaw,
+  } from '../lib/histogram.js'
 
-Alpine.data('canvasView', () => ({
-  zoom: 1,
-  panX: 0,
-  panY: 0,
-  naturalW: 0,
-  naturalH: 0,
-  panning: false,
-  _panStartX: 0,
-  _panStartY: 0,
-  _panOriginX: 0,
-  _panOriginY: 0,
-  renderer: null,
+  Alpine.data('canvasView', () => ({
+    zoom: 1,
+    panX: 0,
+    panY: 0,
+    naturalW: 0,
+    naturalH: 0,
+    panning: false,
+    _panStartX: 0,
+    _panStartY: 0,
+    _panOriginX: 0,
+    _panOriginY: 0,
+    renderer: null,
 
-  init() {
-    const canvas = this.$refs.canvas
+    init() {
+      const canvas = this.$refs.canvas
 
-    // Create renderer
-    this.renderer = new Renderer(canvas)
+      // Create renderer
+      this.renderer = new Renderer(canvas)
 
-    // Load image event
-    window.addEventListener('editor:loadImage', (e) => {
-      const { bitmap } = e.detail
-      this.naturalW = bitmap.width
-      this.naturalH = bitmap.height
-      canvas.width = bitmap.width
-      canvas.height = bitmap.height
-      this.renderer.loadImage(bitmap)
-      this.renderer.render(Alpine.store('editor'))
-      this.fitToScreen()
-    })
+      // Load image event
+      window.addEventListener('editor:loadImage', e => {
+        const { bitmap } = e.detail
+        this.naturalW = bitmap.width
+        this.naturalH = bitmap.height
+        canvas.width = bitmap.width
+        canvas.height = bitmap.height
+        this.renderer.loadImage(bitmap)
+        this.renderer.render(Alpine.store('editor'))
+        this.$nextTick(() => this.fitToScreen())
+        computeHistogramFromBitmap(bitmap).then(hist => {
+          Alpine.store('editor').histogram = hist
+        })
+      })
 
-    // Load RAW event
-    window.addEventListener('editor:loadRaw', (e) => {
-      const { pixels, width, height } = e.detail
-      this.naturalW = width
-      this.naturalH = height
-      canvas.width = width
-      canvas.height = height
-      this.renderer.loadRawPixels(pixels, width, height)
-      this.renderer.render(Alpine.store('editor'))
-      this.fitToScreen()
-    })
+      // Load RAW event
+      window.addEventListener('editor:loadRaw', e => {
+        const { pixels, width, height } = e.detail
+        this.naturalW = width
+        this.naturalH = height
+        canvas.width = width
+        canvas.height = height
+        this.renderer.loadRawPixels(pixels, width, height)
+        this.renderer.render(Alpine.store('editor'))
+        this.$nextTick(() => this.fitToScreen())
+        Alpine.store('editor').histogram = computeHistogramFromRaw(pixels)
+      })
 
-    // Re-render on store events
-    window.addEventListener('editor:render', () => {
-      this.renderer?.render(Alpine.store('editor'))
-    })
+      // Re-render on store events
+      window.addEventListener('editor:render', () => {
+        this.renderer?.render(Alpine.store('editor'))
+      })
 
-    // Auto-save session (debounced 2s)
-    let _saveTimer = null
-    window.addEventListener('editor:render', () => {
-      if (!Alpine.store('editor').hasImage) return
-      clearTimeout(_saveTimer)
-      _saveTimer = setTimeout(async () => {
-        try {
-          const store = Alpine.store('editor')
-          if (!store.hasImage) return
-          // Take a small preview thumbnail
-          const blob = await new Promise(r => this.$refs.canvas.toBlob(r, 'image/jpeg', 0.35))
-          await saveSession(store, blob)
-        } catch (e) {
-          // Auto-save failure is non-critical
-        }
-      }, 2000)
-    })
+      // Auto-save session (debounced 2s)
+      let _saveTimer = null
+      window.addEventListener('editor:render', () => {
+        if (!Alpine.store('editor').hasImage) return
+        clearTimeout(_saveTimer)
+        _saveTimer = setTimeout(async () => {
+          try {
+            const store = Alpine.store('editor')
+            if (!store.hasImage) return
+            // Take a small preview thumbnail
+            const blob = await new Promise(r =>
+              this.$refs.canvas.toBlob(r, 'image/jpeg', 0.35),
+            )
+            await saveSession(store, blob)
+          } catch (e) {
+            // Auto-save failure is non-critical
+          }
+        }, 2000)
+      })
 
-    // Watch store edit values — re-render on any change
-    this.$watch('$store.editor.light', () => {
-      this.renderer?.render(Alpine.store('editor'))
-    }, { deep: true })
+      // Watch store edit values — re-render on any change
+      this.$watch(
+        '$store.editor.light',
+        () => {
+          this.renderer?.render(Alpine.store('editor'))
+        },
+        { deep: true },
+      )
 
-    this.$watch('$store.editor.color', () => {
-      this.renderer?.render(Alpine.store('editor'))
-    }, { deep: true })
+      this.$watch(
+        '$store.editor.color',
+        () => {
+          this.renderer?.render(Alpine.store('editor'))
+        },
+        { deep: true },
+      )
 
-    this.$watch('$store.editor.curve', () => {
-      this.renderer?.render(Alpine.store('editor'))
-    }, { deep: true })
+      this.$watch(
+        '$store.editor.curve',
+        () => {
+          this.renderer?.render(Alpine.store('editor'))
+        },
+        { deep: true },
+      )
 
-    this.$watch('$store.editor.detail', () => {
-      this.renderer?.render(Alpine.store('editor'))
-    }, { deep: true })
+      this.$watch(
+        '$store.editor.detail',
+        () => {
+          this.renderer?.render(Alpine.store('editor'))
+        },
+        { deep: true },
+      )
 
-    // Gesture setup
-    const container = this.$el
-    setupGestures(container, {
-      doubleTap: () => this.fitToScreen(),
-      pinchZoom: ({ scale, dx, dy }) => {
-        this.zoom = Math.max(0.05, Math.min(30, this.zoom * scale))
-        this.panX += dx
-        this.panY += dy
-      },
-    })
+      // Gesture setup
+      const container = this.$el
+      setupGestures(container, {
+        doubleTap: () => this.fitToScreen(),
+        pinchZoom: ({ scale, dx, dy }) => {
+          this.zoom = Math.max(0.05, Math.min(30, this.zoom * scale))
+          this.panX += dx
+          this.panY += dy
+        },
+      })
 
-    // Mouse pan (desktop)
-    window.addEventListener('mousemove', (e) => {
-      if (!this.panning) return
-      this.panX = this._panOriginX + (e.clientX - this._panStartX)
-      this.panY = this._panOriginY + (e.clientY - this._panStartY)
-    })
-    window.addEventListener('mouseup', () => {
-      this.panning = false
-    })
-  },
+      // Mouse pan (desktop)
+      window.addEventListener('mousemove', e => {
+        if (!this.panning) return
+        this.panX = this._panOriginX + (e.clientX - this._panStartX)
+        this.panY = this._panOriginY + (e.clientY - this._panStartY)
+      })
+      window.addEventListener('mouseup', () => {
+        this.panning = false
+      })
+    },
 
-  startPan(e) {
-    this.panning = true
-    this._panStartX = e.clientX
-    this._panStartY = e.clientY
-    this._panOriginX = this.panX
-    this._panOriginY = this.panY
-  },
-
-  touchStart(e) {
-    // Single finger pan
-    if (e.touches.length === 1) {
-      this._panStartX = e.touches[0].clientX
-      this._panStartY = e.touches[0].clientY
+    startPan(e) {
+      this.panning = true
+      this._panStartX = e.clientX
+      this._panStartY = e.clientY
       this._panOriginX = this.panX
       this._panOriginY = this.panY
+    },
 
-      const onMove = (ev) => {
-        if (ev.touches.length !== 1) return
-        this.panX = this._panOriginX + (ev.touches[0].clientX - this._panStartX)
-        this.panY = this._panOriginY + (ev.touches[0].clientY - this._panStartY)
-      }
-      const onEnd = () => {
-        window.removeEventListener('touchmove', onMove)
-        window.removeEventListener('touchend', onEnd)
-      }
-      window.addEventListener('touchmove', onMove, { passive: true })
-      window.addEventListener('touchend', onEnd, { passive: true })
-    }
-  },
+    touchStart(e) {
+      // Single finger pan
+      if (e.touches.length === 1) {
+        this._panStartX = e.touches[0].clientX
+        this._panStartY = e.touches[0].clientY
+        this._panOriginX = this.panX
+        this._panOriginY = this.panY
 
-  fitToScreen() {
-    const container = this.$el
-    const cw = container.clientWidth
-    const ch = container.clientHeight
-    if (!this.naturalW || !this.naturalH) return
-    const scaleX = cw / this.naturalW
-    const scaleY = ch / this.naturalH
-    this.zoom = Math.min(scaleX, scaleY) * 0.95
-    this.panX = (cw - this.naturalW * this.zoom) / 2
-    this.panY = (ch - this.naturalH * this.zoom) / 2
-  },
-}))
+        const onMove = ev => {
+          if (ev.touches.length !== 1) return
+          this.panX =
+            this._panOriginX + (ev.touches[0].clientX - this._panStartX)
+          this.panY =
+            this._panOriginY + (ev.touches[0].clientY - this._panStartY)
+        }
+        const onEnd = () => {
+          window.removeEventListener('touchmove', onMove)
+          window.removeEventListener('touchend', onEnd)
+        }
+        window.addEventListener('touchmove', onMove, { passive: true })
+        window.addEventListener('touchend', onEnd, { passive: true })
+      }
+    },
+
+    fitToScreen() {
+      const container = this.$el
+      const cw = container.clientWidth
+      const ch = container.clientHeight
+      if (!this.naturalW || !this.naturalH) return
+      const scaleX = cw / this.naturalW
+      const scaleY = ch / this.naturalH
+      this.zoom = Math.min(scaleX, scaleY) * 0.95
+      this.panX = (cw - this.naturalW * this.zoom) / 2
+      this.panY = (ch - this.naturalH * this.zoom) / 2
+    },
+  }))
 </script>

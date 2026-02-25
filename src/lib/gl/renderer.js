@@ -47,8 +47,11 @@ export class Renderer {
       new Uint8Array([128, 128, 128, 255]))
     this._setTexParams()
 
-    this.curveLUT = gl.createTexture()
-    this._buildCurveLUT([[0,0],[0.25,0.25],[0.75,0.75],[1,1]])
+    const defaultPts = [[0,0],[0.25,0.25],[0.75,0.75],[1,1]]
+    this.curveLUT_r = this._createLUTTexture()
+    this.curveLUT_g = this._createLUTTexture()
+    this.curveLUT_b = this._createLUTTexture()
+    this._buildChannelLUTs(defaultPts, defaultPts, defaultPts, defaultPts)
 
     // FBO texture (for first pass output when sharpening/NR active)
     this.fboTexture = gl.createTexture()
@@ -66,7 +69,7 @@ export class Renderer {
     gl.useProgram(this.program)
     this._u = {}
     for (const name of [
-      'u_texture', 'u_curveLUT', 'u_isFloat', 'u_useCurve',
+      'u_texture', 'u_curveLUT_r', 'u_curveLUT_g', 'u_curveLUT_b', 'u_isFloat', 'u_useCurve',
       'u_exposure', 'u_contrast', 'u_highlights', 'u_shadows', 'u_whites', 'u_blacks',
       'u_temp', 'u_tint', 'u_vibrance', 'u_saturation', 'u_hsl',
     ]) {
@@ -150,17 +153,35 @@ export class Renderer {
     ))
   }
 
-  _buildCurveLUT(points) {
+  _createLUTTexture() {
+    const gl = this.gl
+    const tex = gl.createTexture()
+    gl.bindTexture(gl.TEXTURE_2D, tex)
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, 256, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
+    this._setTexParams()
+    return tex
+  }
+
+  // Compose rgb curve with a per-channel curve and upload to texture
+  _buildComposedLUT(rgbPts, channelPts, texture) {
     const gl = this.gl
     const lut = new Uint8Array(256 * 4)
     for (let i = 0; i < 256; i++) {
-      const v = Math.round(this._evalCurve(points, i / 255) * 255)
-      lut[i * 4] = lut[i * 4 + 1] = lut[i * 4 + 2] = v
-      lut[i * 4 + 3] = 255
+      const v1 = this._evalCurve(rgbPts, i / 255)
+      const v2 = this._evalCurve(channelPts, v1)
+      const out = Math.round(v2 * 255)
+      lut[i*4] = lut[i*4+1] = lut[i*4+2] = out
+      lut[i*4+3] = 255
     }
-    gl.bindTexture(gl.TEXTURE_2D, this.curveLUT)
+    gl.bindTexture(gl.TEXTURE_2D, texture)
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, 256, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, lut)
     this._setTexParams()
+  }
+
+  _buildChannelLUTs(rgbPts, rPts, gPts, bPts) {
+    this._buildComposedLUT(rgbPts, rPts, this.curveLUT_r)
+    this._buildComposedLUT(rgbPts, gPts, this.curveLUT_g)
+    this._buildComposedLUT(rgbPts, bPts, this.curveLUT_b)
   }
 
   _resizeFBO(w, h) {
@@ -202,8 +223,16 @@ export class Renderer {
     gl.uniform1i(u['u_texture'], 0)
 
     gl.activeTexture(gl.TEXTURE1)
-    gl.bindTexture(gl.TEXTURE_2D, this.curveLUT)
-    gl.uniform1i(u['u_curveLUT'], 1)
+    gl.bindTexture(gl.TEXTURE_2D, this.curveLUT_r)
+    gl.uniform1i(u['u_curveLUT_r'], 1)
+
+    gl.activeTexture(gl.TEXTURE2)
+    gl.bindTexture(gl.TEXTURE_2D, this.curveLUT_g)
+    gl.uniform1i(u['u_curveLUT_g'], 2)
+
+    gl.activeTexture(gl.TEXTURE3)
+    gl.bindTexture(gl.TEXTURE_2D, this.curveLUT_b)
+    gl.uniform1i(u['u_curveLUT_b'], 3)
 
     const light = state.light || {}
     gl.uniform1f(u['u_exposure'],   light.exposure   ?? 0)
@@ -227,9 +256,19 @@ export class Renderer {
     gl.uniform3fv(u['u_hsl'], hslData)
 
     const curve = state.curve || {}
-    const defaultPoints = [[0,0],[0.25,0.25],[0.75,0.75],[1,1]]
-    const isIdentity = !curve.points || JSON.stringify(curve.points) === JSON.stringify(defaultPoints)
-    if (!isIdentity && curve.points) this._buildCurveLUT(curve.points)
+    const defaultPts = [[0,0],[0.25,0.25],[0.75,0.75],[1,1]]
+    const defaultStr = JSON.stringify(defaultPts)
+    // Support legacy format (old sessions had just `curve.points`)
+    const rgbPts = curve.rgb || curve.points || defaultPts
+    const rPts   = curve.r   || defaultPts
+    const gPts   = curve.g   || defaultPts
+    const bPts   = curve.b   || defaultPts
+    const isIdentity =
+      JSON.stringify(rgbPts) === defaultStr &&
+      JSON.stringify(rPts)   === defaultStr &&
+      JSON.stringify(gPts)   === defaultStr &&
+      JSON.stringify(bPts)   === defaultStr
+    if (!isIdentity) this._buildChannelLUTs(rgbPts, rPts, gPts, bPts)
     gl.uniform1i(u['u_useCurve'], isIdentity ? 0 : 1)
     gl.uniform1i(u['u_isFloat'], this._isFloat ? 1 : 0)
 

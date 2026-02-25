@@ -9,6 +9,7 @@ export function createEditorStore(Alpine) {
     width: 0,
     height: 0,
     hasImage: false,
+    histogram: null,  // { r, g, b } — 256-entry count arrays, derived from source image
 
     // Edit values
     light: {
@@ -36,8 +37,11 @@ export function createEditorStore(Alpine) {
       },
     },
     curve: {
-      points: [[0, 0], [0.25, 0.25], [0.75, 0.75], [1, 1]],
       channel: 'rgb',
+      rgb: [[0, 0], [0.25, 0.25], [0.75, 0.75], [1, 1]],
+      r:   [[0, 0], [0.25, 0.25], [0.75, 0.75], [1, 1]],
+      g:   [[0, 0], [0.25, 0.25], [0.75, 0.75], [1, 1]],
+      b:   [[0, 0], [0.25, 0.25], [0.75, 0.75], [1, 1]],
     },
     detail: {
       sharpness: 0,
@@ -68,7 +72,13 @@ export function createEditorStore(Alpine) {
           saturation: this.color.saturation,
           hsl: this.color.hsl,
         },
-        curve: { points: this.curve.points.map(p => [...p]), channel: this.curve.channel },
+        curve: {
+          channel: this.curve.channel,
+          rgb: this.curve.rgb.map(p => [...p]),
+          r:   this.curve.r.map(p => [...p]),
+          g:   this.curve.g.map(p => [...p]),
+          b:   this.curve.b.map(p => [...p]),
+        },
         detail: this.detail,
       })
     },
@@ -93,8 +103,14 @@ export function createEditorStore(Alpine) {
       for (const key of Object.keys(state.color.hsl)) {
         Object.assign(this.color.hsl[key], state.color.hsl[key])
       }
-      this.curve.points = state.curve.points
-      this.curve.channel = state.curve.channel
+      const defaultPts = [[0,0],[0.25,0.25],[0.75,0.75],[1,1]]
+      this.curve.channel = state.curve.channel || 'rgb'
+      // Support legacy format (old sessions had just `points`)
+      const legacy = state.curve.points
+      this.curve.rgb = state.curve.rgb || (legacy ? legacy.map(p=>[...p]) : defaultPts.map(p=>[...p]))
+      this.curve.r   = state.curve.r   || defaultPts.map(p=>[...p])
+      this.curve.g   = state.curve.g   || defaultPts.map(p=>[...p])
+      this.curve.b   = state.curve.b   || defaultPts.map(p=>[...p])
       Object.assign(this.detail, state.detail)
       window.dispatchEvent(new CustomEvent('editor:render'))
     },
@@ -117,7 +133,11 @@ export function createEditorStore(Alpine) {
       for (const key of Object.keys(this.color.hsl)) {
         Object.assign(this.color.hsl[key], { h: 0, s: 0, l: 0 })
       }
-      this.curve.points = [[0,0],[0.25,0.25],[0.75,0.75],[1,1]]
+      const defaultCurvePts = [[0,0],[0.25,0.25],[0.75,0.75],[1,1]]
+      this.curve.rgb = defaultCurvePts.map(p=>[...p])
+      this.curve.r   = defaultCurvePts.map(p=>[...p])
+      this.curve.g   = defaultCurvePts.map(p=>[...p])
+      this.curve.b   = defaultCurvePts.map(p=>[...p])
       Object.assign(this.detail, { sharpness: 0, noiseReduction: 0 })
       this.pushHistory()
       window.dispatchEvent(new CustomEvent('editor:render'))
