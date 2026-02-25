@@ -3,7 +3,7 @@
 export type CurvePoint = [number, number]
 export type CurveChannel = 'rgb' | 'r' | 'g' | 'b'
 export type HSLKey = 'red' | 'orange' | 'yellow' | 'green' | 'aqua' | 'blue' | 'purple' | 'magenta'
-export type PanelName = 'light' | 'color' | 'curve' | 'detail' | 'presets' | 'crop'
+export type PanelName = 'light' | 'color' | 'curve' | 'detail' | 'crop' | 'frame' | 'presets'
 
 export interface LightSettings {
   exposure: number    // EV stops, -5 to +5
@@ -41,6 +41,13 @@ export interface CurveSettings {
 export interface DetailSettings {
   sharpness: number
   noiseReduction: number
+  grain: number       // 0 to 1
+  grainSize: number   // 1 to 8
+}
+
+export interface FrameSettings {
+  thickness: number  // 0 to 0.15 (fraction of shorter image dimension)
+  color: string      // hex e.g. '#ffffff'
 }
 
 export interface CropSettings {
@@ -65,6 +72,7 @@ export interface EditState {
   curve: CurveSettings
   detail: DetailSettings
   crop: CropSettings
+  frame: FrameSettings
 }
 
 /** What gets persisted in IndexedDB per session. */
@@ -89,6 +97,7 @@ export interface RenderState {
   curve?: Partial<CurveSettings> & { points?: CurvePoint[] }  // `points` = legacy format
   detail?: Partial<DetailSettings>
   crop?: Partial<CropSettings>
+  frame?: Partial<FrameSettings>
 }
 
 /** Full Alpine editor store shape. */

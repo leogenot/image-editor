@@ -1,0 +1,78 @@
+---
+import Slider from '../Slider.astro'
+---
+<div x-data class="flex flex-col gap-0 pt-1">
+
+  <!-- Border thickness -->
+  <div>
+    <p class="font-mono text-[9px] text-white/25 uppercase tracking-[0.15em] py-2">BORDER</p>
+    <Slider
+      label="THICKNESS"
+      storeKey="$store.editor.frame.thickness"
+      min="0"
+      max="0.15"
+      step="0.001"
+      decimals="3"
+      defaultValue={0}
+    />
+  </div>
+
+  <!-- Border color -->
+  <div class="pt-4">
+    <p class="font-mono text-[9px] text-white/25 uppercase tracking-[0.15em] mb-3">COLOR</p>
+
+    <!-- Preset swatches + custom color -->
+    <div class="flex gap-2 items-center">
+
+      <!-- White preset -->
+      <button
+        class="flex-1 py-2 font-mono text-[9px] uppercase tracking-wider border rounded-lg transition-all"
+        :class="$store.editor.frame.color === '#ffffff'
+          ? 'border-white bg-white text-black'
+          : 'border-white/10 text-white/35 hover:border-white/30 hover:text-white/60'"
+        @click="$store.editor.frame.color = '#ffffff'; $store.editor.pushHistory(); window.dispatchEvent(new CustomEvent('editor:render'))"
+      >WHITE</button>
+
+      <!-- Black preset -->
+      <button
+        class="flex-1 py-2 font-mono text-[9px] uppercase tracking-wider border rounded-lg transition-all"
+        :class="$store.editor.frame.color === '#000000'
+          ? 'border-white bg-white text-black'
+          : 'border-white/10 text-white/35 hover:border-white/30 hover:text-white/60'"
+        @click="$store.editor.frame.color = '#000000'; $store.editor.pushHistory(); window.dispatchEvent(new CustomEvent('editor:render'))"
+      >BLACK</button>
+
+      <!-- Custom color swatch -->
+      <div class="relative">
+        <button
+          class="w-10 h-9 rounded-lg border border-white/10 overflow-hidden hover:border-white/30 transition-all"
+          title="Custom color"
+          @click="$refs.colorInput.click()"
+        >
+          <div class="w-full h-full" :style="`background: ${$store.editor.frame.color}`"></div>
+        </button>
+        <input
+          x-ref="colorInput"
+          type="color"
+          class="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+          :value="$store.editor.frame.color"
+          @input="$store.editor.frame.color = $event.target.value"
+          @change="$store.editor.pushHistory(); window.dispatchEvent(new CustomEvent('editor:render'))"
+        />
+      </div>
+    </div>
+
+    <!-- Hex value display -->
+    <p
+      class="font-mono text-[9px] text-white/25 uppercase tracking-[0.1em] mt-2 text-center"
+      x-text="$store.editor.frame.color.toUpperCase()"
+    ></p>
+  </div>
+
+  <!-- Reset -->
+  <button
+    class="w-full mt-5 py-2.5 font-mono text-[9px] uppercase tracking-[0.15em] border border-white/10 rounded-lg text-white/30 hover:text-white/55 hover:border-white/25 transition-all"
+    @click="Object.assign($store.editor.frame, { thickness: 0, color: '#ffffff' }); $store.editor.pushHistory(); window.dispatchEvent(new CustomEvent('editor:render'))"
+  >RESET FRAME</button>
+
+</div>

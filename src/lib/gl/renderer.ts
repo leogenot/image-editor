@@ -3,6 +3,15 @@ import fragSrc from './shader.frag?raw'
 import sharpFragSrc from './sharp.frag?raw'
 import type { RenderState, CurvePoint } from '../../types'
 
+function hexToRgb(hex: string): [number, number, number] {
+  const h = hex.replace('#', '')
+  return [
+    parseInt(h.slice(0, 2), 16) / 255,
+    parseInt(h.slice(2, 4), 16) / 255,
+    parseInt(h.slice(4, 6), 16) / 255,
+  ]
+}
+
 export class Renderer {
   private canvas: HTMLCanvasElement
   private gl: WebGL2RenderingContext
@@ -93,6 +102,7 @@ export class Renderer {
       'u_exposure', 'u_contrast', 'u_highlights', 'u_shadows', 'u_whites', 'u_blacks',
       'u_temp', 'u_tint', 'u_vibrance', 'u_saturation', 'u_hsl',
       'u_angle', 'u_aspectRatio',
+      'u_grain', 'u_grainSize', 'u_borderThickness', 'u_borderColor',
     ]) {
       this._u[name] = gl.getUniformLocation(this.program, name)
     }
@@ -303,6 +313,15 @@ export class Renderer {
     const angleDeg = crop.angle ?? 0
     gl.uniform1f(u['u_angle'], (angleDeg * Math.PI) / 180)
     gl.uniform1f(u['u_aspectRatio'], gl.canvas.width / gl.canvas.height)
+
+    const detail = state.detail ?? {}
+    gl.uniform1f(u['u_grain'],      detail.grain      ?? 0)
+    gl.uniform1f(u['u_grainSize'],  detail.grainSize  ?? 1)
+
+    const frame = state.frame ?? {}
+    gl.uniform1f(u['u_borderThickness'], frame.thickness ?? 0)
+    const [br, bg, bb] = hexToRgb(frame.color ?? '#ffffff')
+    gl.uniform3f(u['u_borderColor'], br, bg, bb)
 
     gl.drawArrays(gl.TRIANGLES, 0, 6)
     gl.bindVertexArray(null)

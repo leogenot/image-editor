@@ -256,6 +256,12 @@
         { deep: true },
       )
 
+      this.$watch(
+        '$store.editor.frame',
+        () => { this.renderer?.render(Alpine.store('editor')); deferSave() },
+        { deep: true },
+      )
+
       // Enforce aspect ratio whenever the ratio selection changes
       this.$watch('$store.editor.crop.ratio', (ratio) => {
         if (ratio === 'free' || !this.naturalW || !this.naturalH) return

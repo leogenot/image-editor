@@ -29,6 +29,15 @@ uniform bool u_useCurve;
 uniform float u_angle;       // radians, positive = CCW
 uniform float u_aspectRatio; // canvas width / height
 
+uniform float u_grain;
+uniform float u_grainSize;     // 1.0 to 8.0 — higher = coarser
+uniform float u_borderThickness; // 0 to 0.15, fraction of shorter image dimension
+uniform vec3  u_borderColor;
+
+float grainHash(vec2 st) {
+  return fract(sin(dot(st, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
 float luma(vec3 c) {
   return dot(c, vec3(0.2126, 0.7152, 0.0722));
 }
@@ -95,6 +104,21 @@ float hueMask(float h, float center, float width) {
 
 void main() {
   vec2 tc = v_texCoord;
+
+  // Border: fill edges with border color, remap inner UV to scale image down
+  if (u_borderThickness > 0.001) {
+    float ar = u_aspectRatio;
+    // Compute equal-pixel-width border thickness in UV space
+    float tx = ar >= 1.0 ? u_borderThickness / ar : u_borderThickness;
+    float ty = ar >= 1.0 ? u_borderThickness : u_borderThickness * ar;
+    if (tc.x < tx || tc.x > 1.0 - tx || tc.y < ty || tc.y > 1.0 - ty) {
+      outColor = vec4(u_borderColor, 1.0);
+      return;
+    }
+    // Remap UV so image fills the inner region (scales image down)
+    tc.x = (tc.x - tx) / (1.0 - 2.0 * tx);
+    tc.y = (tc.y - ty) / (1.0 - 2.0 * ty);
+  }
 
   // Straighten rotation — rotate UV around image center
   if (abs(u_angle) > 0.0001) {
@@ -184,6 +208,13 @@ void main() {
 
   color = aces(color);
   color = linearToSrgb(color);
+
+  // Film grain — static noise based on original UV, applied in sRGB space
+  if (u_grain > 0.001) {
+    vec2 noiseCoord = floor(v_texCoord * 512.0 / u_grainSize);
+    float noise = grainHash(noiseCoord) * 2.0 - 1.0;
+    color += vec3(noise * u_grain * 0.15);
+  }
 
   outColor = vec4(clamp(color, 0.0, 1.0), texel.a);
 }
