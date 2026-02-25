@@ -20,10 +20,11 @@ export function evalCurve(points: CurvePoint[], t: number): number {
   const x1 = points[seg + 1][0]
   const lt = x1 === x0 ? 0 : (t - x0) / (x1 - x0)
 
-  const p0 = points[Math.max(0, seg - 1)]
   const p1 = points[seg]
-  const p2 = points[Math.min(n, seg + 1)]
-  const p3 = points[Math.min(n, seg + 2)]
+  const p2 = points[seg + 1]
+  // Reflected phantom points at boundaries keep the spline linear through collinear points
+  const p0: CurvePoint = seg > 0 ? points[seg - 1] : [2*p1[0]-p2[0], 2*p1[1]-p2[1]]
+  const p3: CurvePoint = seg < n - 1 ? points[seg + 2] : [2*p2[0]-p1[0], 2*p2[1]-p1[1]]
 
   const t2 = lt * lt
   const t3 = lt * lt * lt

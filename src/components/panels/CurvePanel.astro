@@ -85,6 +85,7 @@ import { buildCurvePath } from '../../lib/bezier.js'
 Alpine.data('curveEditor', () => ({
   _draggingIndex: null,
   _hasDragged: false,
+  _lastTapTime: 0,
 
   get currentPoints() {
     const ch = this.$store.editor.curve.channel
@@ -168,6 +169,14 @@ Alpine.data('curveEditor', () => ({
   onTouchStart(e) {
     if (e.touches.length !== 1) return
     const [x, y] = this.getSvgPoint(e.touches[0].clientX, e.touches[0].clientY)
+    const now = Date.now()
+    if (now - this._lastTapTime < 300) {
+      const idx = this._findNearest(x, y, 0.08)
+      if (idx !== -1) this.removePoint(idx)
+      this._lastTapTime = 0
+      return
+    }
+    this._lastTapTime = now
     const idx = this._findNearest(x, y, 0.08)
     if (idx !== -1) {
       this._draggingIndex = idx
@@ -225,7 +234,7 @@ Alpine.data('curveEditor', () => ({
   },
 
   resetCurve() {
-    const d = [[0,0],[0.25,0.25],[0.75,0.75],[1,1]]
+    const d = [[0,0],[1,1]]
     this.$store.editor.curve.rgb = d.map(p=>[...p])
     this.$store.editor.curve.r   = d.map(p=>[...p])
     this.$store.editor.curve.g   = d.map(p=>[...p])

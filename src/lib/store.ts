@@ -2,7 +2,7 @@ import type { Alpine } from 'alpinejs'
 import type { EditorStore, EditState, CurvePoint, HSLKey } from '../types'
 
 export function createEditorStore(Alpine: Alpine): void {
-  const defaultCurvePts = (): CurvePoint[] => [[0, 0], [0.25, 0.25], [0.75, 0.75], [1, 1]]
+  const defaultCurvePts = (): CurvePoint[] => [[0, 0], [1, 1]]
 
   // ThisType<EditorStore> gives correct `this` context inside all methods
   const storeDefinition: EditorStore & ThisType<EditorStore> = {
@@ -155,11 +155,10 @@ export function createEditorStore(Alpine: Alpine): void {
       for (const key of Object.keys(this.color.hsl) as HSLKey[]) {
         Object.assign(this.color.hsl[key], { h: 0, s: 0, l: 0 })
       }
-      const defaultCurvePtsLocal = [[0,0],[0.25,0.25],[0.75,0.75],[1,1]] as CurvePoint[]
-      this.curve.rgb = defaultCurvePtsLocal.map(p => [...p] as CurvePoint)
-      this.curve.r   = defaultCurvePtsLocal.map(p => [...p] as CurvePoint)
-      this.curve.g   = defaultCurvePtsLocal.map(p => [...p] as CurvePoint)
-      this.curve.b   = defaultCurvePtsLocal.map(p => [...p] as CurvePoint)
+      this.curve.rgb = defaultCurvePts()
+      this.curve.r   = defaultCurvePts()
+      this.curve.g   = defaultCurvePts()
+      this.curve.b   = defaultCurvePts()
       Object.assign(this.detail, { sharpness: 0, noiseReduction: 0 })
       this.pushHistory()
       window.dispatchEvent(new CustomEvent('editor:render'))
