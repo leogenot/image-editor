@@ -238,6 +238,10 @@
       const cw = container.clientWidth
       const ch = container.clientHeight
       if (!this.naturalW || !this.naturalH) return
+      if (!cw || !ch) {
+        requestAnimationFrame(() => this.fitToScreen())
+        return
+      }
       const scaleX = cw / this.naturalW
       const scaleY = ch / this.naturalH
       this.zoom = Math.min(scaleX, scaleY) * 0.95
