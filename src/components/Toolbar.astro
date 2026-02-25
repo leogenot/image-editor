@@ -170,44 +170,56 @@
         class="font-mono text-[9px] text-white/40 uppercase tracking-[0.1em]"
         >Format</label
       >
-      <div class="grid grid-cols-3 gap-1.5">
-        <template
-          x-for="f in [
-          { label: 'JPEG', val: 'image/jpeg' },
-          { label: 'PNG',  val: 'image/png' },
-          { label: 'WEBP', val: 'image/webp' },
-        ]"
-        >
-          <button
-            class="py-2 font-mono text-[9px] uppercase tracking-wider border rounded-lg transition-all"
-            :class="format === f.val
-              ? 'border-white bg-white text-black'
-              : 'border-white/10 text-white/40 hover:border-white/25 hover:text-white/60'"
-            @click="format = f.val"
-            x-text="f.label"></button>
-        </template>
+      <div class="grid grid-cols-2 gap-1.5">
+        <button
+          class="py-2 font-mono text-[9px] uppercase tracking-wider border rounded-lg transition-all"
+          :class="format === 'image/jpeg' ? 'border-white bg-white text-black' : 'border-white/10 text-white/40 hover:border-white/25 hover:text-white/60'"
+          @click="format = 'image/jpeg'"
+        >JPEG</button>
+        <button
+          class="py-2 font-mono text-[9px] uppercase tracking-wider border rounded-lg transition-all"
+          :class="format === 'image/png' ? 'border-white bg-white text-black' : 'border-white/10 text-white/40 hover:border-white/25 hover:text-white/60'"
+          @click="format = 'image/png'"
+        >PNG</button>
       </div>
     </div>
 
     <!-- Quality slider -->
-    <div class="flex flex-col gap-2" x-show="format !== 'image/png'">
-      <div class="flex justify-between">
-        <label
-          class="font-mono text-[9px] text-white/40 uppercase tracking-[0.1em]"
-          >Quality</label
-        >
-        <span
-          class="font-mono text-[10px] text-white/80 tabular-nums"
-          x-text="Math.round(quality * 100) + '%'"></span>
+    <div class="flex flex-col gap-1" x-show="format !== 'image/png'">
+      <div class="flex justify-between items-baseline mb-1">
+        <label class="font-mono text-[9px] text-white/40 uppercase tracking-[0.1em]">Quality</label>
+        <span class="font-mono text-[10px] text-white tabular-nums" x-text="Math.round(quality * 100) + '%'"></span>
       </div>
-      <input
-        type="range"
-        min="0.5"
-        max="1"
-        step="0.01"
-        x-model.number="quality"
-        class="w-full h-0.5 bg-white/10 rounded-full appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full"
-      />
+      <!-- Same custom track pattern as Slider.astro -->
+      <div class="relative h-11 flex items-center" x-data="{ _lastTap: 0 }">
+        <!-- Track background -->
+        <div class="absolute inset-x-0 top-1/2 -translate-y-1/2 h-px bg-white/[0.12]"></div>
+        <!-- Filled track: unipolar, left-anchored -->
+        <div
+          class="absolute top-1/2 -translate-y-1/2 h-px bg-white/70 left-0"
+          :style="`right: ${100 - (quality - 0.5) / 0.5 * 100}%`"
+        ></div>
+        <!-- Custom thumb -->
+        <div
+          class="absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-white rounded-sm pointer-events-none -translate-x-1/2"
+          :style="`left: ${(quality - 0.5) / 0.5 * 100}%`"
+        ></div>
+        <!-- Invisible range input (full touch target) -->
+        <input
+          type="range"
+          min="0.5"
+          max="1"
+          step="0.01"
+          x-model.number="quality"
+          class="absolute inset-0 w-full h-full opacity-0 cursor-pointer touch-none"
+          @touchmove.prevent="
+            const r = $el.getBoundingClientRect();
+            const p = Math.max(0, Math.min(1, ($event.touches[0].clientX - r.left) / r.width));
+            quality = parseFloat((0.5 + p * 0.5).toFixed(2));
+          "
+          @touchstart="const now = Date.now(); if (now - _lastTap < 300) { quality = 0.92; } _lastTap = now;"
+        />
+      </div>
     </div>
 
     <!-- Action buttons -->
@@ -287,12 +299,7 @@
       if (!canvas) return
       const store = Alpine.store('editor')
       const { format, quality } = this
-      const ext =
-        format === 'image/png'
-          ? 'png'
-          : format === 'image/webp'
-            ? 'webp'
-            : 'jpg'
+      const ext = format === 'image/png' ? 'png' : 'jpg'
       const basename = store.filename.replace(/\.[^.]+$/, '') || 'edited'
       canvas.toBlob(
         blob => {
