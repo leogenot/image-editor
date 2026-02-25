@@ -26,6 +26,9 @@ uniform sampler2D u_curveLUT_g;
 uniform sampler2D u_curveLUT_b;
 uniform bool u_useCurve;
 
+uniform float u_angle;       // radians, positive = CCW
+uniform float u_aspectRatio; // canvas width / height
+
 float luma(vec3 c) {
   return dot(c, vec3(0.2126, 0.7152, 0.0722));
 }
@@ -91,7 +94,25 @@ float hueMask(float h, float center, float width) {
 }
 
 void main() {
-  vec4 texel = texture(u_texture, v_texCoord);
+  vec2 tc = v_texCoord;
+
+  // Straighten rotation — rotate UV around image center
+  if (abs(u_angle) > 0.0001) {
+    tc -= 0.5;
+    float cosA = cos(u_angle);
+    float sinA = sin(u_angle);
+    tc.x *= u_aspectRatio;
+    tc = vec2(cosA * tc.x - sinA * tc.y, sinA * tc.x + cosA * tc.y);
+    tc.x /= u_aspectRatio;
+    tc += 0.5;
+    // Out-of-bounds pixels = black
+    if (tc.x < 0.0 || tc.x > 1.0 || tc.y < 0.0 || tc.y > 1.0) {
+      outColor = vec4(0.0, 0.0, 0.0, 1.0);
+      return;
+    }
+  }
+
+  vec4 texel = texture(u_texture, tc);
   vec3 color = texel.rgb;
 
   if (!u_isFloat) {

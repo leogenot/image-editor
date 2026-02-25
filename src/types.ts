@@ -88,6 +88,7 @@ export interface RenderState {
   color?: Partial<ColorSettings>
   curve?: Partial<CurveSettings> & { points?: CurvePoint[] }  // `points` = legacy format
   detail?: Partial<DetailSettings>
+  crop?: Partial<CropSettings>
 }
 
 /** Full Alpine editor store shape. */
@@ -108,6 +109,7 @@ export interface EditorStore extends EditState {
   cropMode: boolean
   exportOpen: boolean
   restoring: boolean
+  straightening: boolean
 
   // History
   _history: string[]

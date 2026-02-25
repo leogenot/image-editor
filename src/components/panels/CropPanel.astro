@@ -36,13 +36,15 @@
         type="range" min="-45" max="45" step="0.5"
         x-model.number="$store.editor.crop.angle"
         class="absolute inset-0 w-full h-full opacity-0 cursor-pointer touch-none"
-        @change="$store.editor.pushHistory()"
+        @input="$store.editor.straightening = true"
+        @change="$store.editor.straightening = false; $store.editor.pushHistory()"
         @touchmove.prevent="
           const r = $el.getBoundingClientRect();
           const p = Math.max(0, Math.min(1, ($event.touches[0].clientX - r.left) / r.width));
           $store.editor.crop.angle = parseFloat((-45 + p * 90).toFixed(1));
+          $store.editor.straightening = true;
         "
-        @touchend="$store.editor.pushHistory()"
+        @touchend="$store.editor.straightening = false; $store.editor.pushHistory()"
         @touchstart="const now = Date.now(); if (now - _lastTap < 300) { $store.editor.crop.angle = 0; $store.editor.pushHistory(); } _lastTap = now;"
         @dblclick.prevent="$store.editor.crop.angle = 0; $store.editor.pushHistory()"
       />

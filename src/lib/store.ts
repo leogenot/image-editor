@@ -64,6 +64,7 @@ export function createEditorStore(Alpine: Alpine): void {
     cropMode: false,
     exportOpen: false,
     restoring: false,
+    straightening: false,
 
     // History (undo/redo)
     _history: [],

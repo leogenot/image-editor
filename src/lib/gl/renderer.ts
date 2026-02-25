@@ -92,6 +92,7 @@ export class Renderer {
       'u_texture', 'u_curveLUT_r', 'u_curveLUT_g', 'u_curveLUT_b', 'u_isFloat', 'u_useCurve',
       'u_exposure', 'u_contrast', 'u_highlights', 'u_shadows', 'u_whites', 'u_blacks',
       'u_temp', 'u_tint', 'u_vibrance', 'u_saturation', 'u_hsl',
+      'u_angle', 'u_aspectRatio',
     ]) {
       this._u[name] = gl.getUniformLocation(this.program, name)
     }
@@ -297,6 +298,11 @@ export class Renderer {
     if (!isIdentity) this._buildChannelLUTs(rgbPts, rPts, gPts, bPts)
     gl.uniform1i(u['u_useCurve'], isIdentity ? 0 : 1)
     gl.uniform1i(u['u_isFloat'], this._isFloat ? 1 : 0)
+
+    const crop = state.crop ?? {}
+    const angleDeg = crop.angle ?? 0
+    gl.uniform1f(u['u_angle'], (angleDeg * Math.PI) / 180)
+    gl.uniform1f(u['u_aspectRatio'], gl.canvas.width / gl.canvas.height)
 
     gl.drawArrays(gl.TRIANGLES, 0, 6)
     gl.bindVertexArray(null)
