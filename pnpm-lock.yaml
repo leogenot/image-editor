@@ -26,6 +26,9 @@ importers:
       idb-keyval:
         specifier: ^6.2.2
         version: 6.2.2
+      libraw-wasm:
+        specifier: ^1.1.2
+        version: 1.1.2
     devDependencies:
       '@tailwindcss/vite':
         specifier: ^4.2.1
@@ -1200,6 +1203,9 @@ packages:
   kleur@3.0.3:
     resolution: {integrity: sha512-eTIzlVOSUR+JxdDFepEYcBMtZ9Qqdef+rnzWdRZuMbOywu5tO2w2N7rqjoANZ5k9vywhL6Br1VRjUIgTQx4E8w==}
     engines: {node: '>=6'}
+
+  libraw-wasm@1.1.2:
+    resolution: {integrity: sha512-lOVdqbzCkvsLtMoTz41Pc3alQptWHCyD71jGBTnQmoNK5CTVayXGqtTSBntLil7YaO3h/yESx7e9jMskMtnOEQ==}
 
   lightningcss-android-arm64@1.31.1:
     resolution: {integrity: sha512-HXJF3x8w9nQ4jbXRiNppBCqeZPIAfUo8zE/kOEGbW5NZvGc/K7nMxbhIr+YlFlHW5mpbg/YFPdbnCh1wAXCKFg==}
@@ -2952,6 +2958,8 @@ snapshots:
       argparse: 2.0.1
 
   kleur@3.0.3: {}
+
+  libraw-wasm@1.1.2: {}
 
   lightningcss-android-arm64@1.31.1:
     optional: true

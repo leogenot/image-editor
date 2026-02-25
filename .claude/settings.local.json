@@ -5,7 +5,9 @@
       "Bash(npm install:*)",
       "Bash(cat:*)",
       "Bash(git init && git add . && git commit -m \"feat: initial Astro + Alpine.js + Tailwind 4 scaffold\" 2>&1)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(python3:*)",
+      "WebFetch(domain:github.com)"
     ]
   }
 }

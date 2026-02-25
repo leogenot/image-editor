@@ -27,10 +27,7 @@ async function fallbackDecode(buffer: ArrayBuffer, filename: string): Promise<Ra
     bitmap.close()
     return { pixels, width: canvas.width, height: canvas.height }
   } catch {
-    throw new Error(
-      `Cannot decode ${filename}. LibRaw WASM is not installed. ` +
-      `Please convert your RAW file to DNG or JPEG first using Adobe DNG Converter or your camera software.`
-    )
+    throw new Error(`Cannot decode ${filename}. Unsupported format.`)
   }
 }
 

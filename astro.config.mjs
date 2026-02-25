@@ -6,5 +6,8 @@ export default defineConfig({
   integrations: [alpinejs({ entrypoint: '/src/entrypoint.ts' })],
   vite: {
     plugins: [tailwindcss()],
+    optimizeDeps: {
+      exclude: ['libraw-wasm'],
+    },
   },
 })
