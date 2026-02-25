@@ -9,6 +9,7 @@
     "astro": "astro"
   },
   "dependencies": {
+    "@alpinejs/collapse": "^3.15.8",
     "@astrojs/alpinejs": "^0.4.9",
     "@fontsource/space-mono": "^5.2.9",
     "alpinejs": "^3.15.8",

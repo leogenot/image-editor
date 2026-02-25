@@ -1,0 +1,58 @@
+---
+import Slider from '../Slider.astro'
+---
+<div class="pt-1">
+  <Slider label="TEMP"       storeKey="$store.editor.color.temp"       min="-1" max="1" step="0.01" decimals="2" />
+  <Slider label="TINT"       storeKey="$store.editor.color.tint"       min="-1" max="1" step="0.01" decimals="2" />
+  <Slider label="VIBRANCE"   storeKey="$store.editor.color.vibrance"   min="-1" max="1" step="0.01" decimals="2" />
+  <Slider label="SATURATION" storeKey="$store.editor.color.saturation" min="-1" max="1" step="0.01" decimals="2" />
+
+  <div class="mt-4 mb-1">
+    <p class="font-mono text-[9px] text-white/25 uppercase tracking-[0.15em]">HSL</p>
+  </div>
+
+  <template x-for="ch in ['red','orange','yellow','green','aqua','blue','purple','magenta']" :key="ch">
+    <div x-data="{ open: false }" class="border-b border-white/[0.04] last:border-0">
+      <button
+        class="w-full flex justify-between items-center py-2.5"
+        @click="open = !open"
+      >
+        <span
+          class="font-mono text-[9px] uppercase tracking-[0.15em] transition-colors"
+          :class="open ? 'text-white/70' : 'text-white/35'"
+          x-text="ch.toUpperCase()"
+        ></span>
+        <span class="font-mono text-[10px] text-white/25 transition-transform duration-200" :class="open ? 'rotate-45' : ''">+</span>
+      </button>
+
+      <div x-show="open" x-collapse class="pb-2">
+        <div class="pl-2 space-y-1">
+          <template x-for="prop in ['h','s','l']" :key="prop">
+            <div class="py-1.5">
+              <div class="flex justify-between items-baseline mb-1">
+                <span class="font-mono text-[8px] uppercase tracking-[0.12em] text-white/25"
+                  x-text="prop === 'h' ? 'HUE' : prop === 's' ? 'SAT' : 'LUM'"></span>
+                <span class="font-mono text-[9px] text-white tabular-nums"
+                  x-text="($store.editor.color.hsl[ch][prop] > 0 ? '+' : '') + Number($store.editor.color.hsl[ch][prop]).toFixed(2)"></span>
+              </div>
+              <div class="relative h-9 flex items-center">
+                <div class="absolute inset-x-0 top-1/2 -translate-y-1/2 h-px bg-white/[0.1]"></div>
+                <div
+                  class="absolute top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-white rounded-sm pointer-events-none -translate-x-1/2"
+                  :style="`left: ${50 + ($store.editor.color.hsl[ch][prop] / 2) * 100}%`"
+                ></div>
+                <input
+                  type="range" min="-1" max="1" step="0.01"
+                  :value="$store.editor.color.hsl[ch][prop]"
+                  @input="$store.editor.color.hsl[ch][prop] = parseFloat($event.target.value)"
+                  @change="$store.editor.pushHistory()"
+                  class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+  </template>
+</div>
