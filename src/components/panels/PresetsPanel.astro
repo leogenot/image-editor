@@ -1,0 +1,67 @@
+---
+---
+<div x-data="presetsPanel()" class="pt-2">
+  <div class="grid grid-cols-3 gap-2">
+    <template x-for="preset in presets" :key="preset.id">
+      <button
+        class="flex flex-col items-center gap-1.5 p-2 border rounded-xl transition-all group"
+        :class="activePreset === preset.id
+          ? 'border-white bg-white/[0.06]'
+          : 'border-white/[0.08] hover:border-white/25 bg-white/[0.02]'"
+        @click="applyPreset(preset)"
+      >
+        <!-- Thumbnail placeholder (letter avatar) -->
+        <div class="w-full aspect-square rounded-lg bg-white/[0.04] flex items-center justify-center overflow-hidden">
+          <span
+            class="font-mono text-[10px] transition-colors"
+            :class="activePreset === preset.id ? 'text-white' : 'text-white/20 group-hover:text-white/40'"
+            x-text="preset.name[0]"
+          ></span>
+        </div>
+        <span
+          class="font-mono text-[8px] uppercase tracking-[0.12em] transition-colors"
+          :class="activePreset === preset.id ? 'text-white' : 'text-white/35'"
+          x-text="preset.name"
+        ></span>
+      </button>
+    </template>
+  </div>
+
+  <!-- Reset presets -->
+  <button
+    class="w-full mt-3 py-2 font-mono text-[9px] uppercase tracking-[0.15em] border border-white/10 rounded-lg text-white/30 hover:text-white/55 hover:border-white/25 transition-all"
+    @click="resetPreset()"
+    x-show="activePreset !== null"
+  >
+    CLEAR PRESET
+  </button>
+</div>
+
+<script>
+import Alpine from 'alpinejs'
+import { PRESETS } from '../../lib/presets.js'
+
+Alpine.data('presetsPanel', () => ({
+  presets: PRESETS,
+  activePreset: null,
+
+  applyPreset(preset) {
+    const store = Alpine.store('editor')
+    Object.assign(store.light, preset.light)
+    Object.assign(store.color, {
+      temp: preset.color.temp,
+      tint: preset.color.tint,
+      vibrance: preset.color.vibrance,
+      saturation: preset.color.saturation,
+    })
+    this.activePreset = preset.id
+    store.pushHistory()
+    window.dispatchEvent(new CustomEvent('editor:render'))
+  },
+
+  resetPreset() {
+    Alpine.store('editor').resetEdits()
+    this.activePreset = null
+  },
+}))
+</script>
