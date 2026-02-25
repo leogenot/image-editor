@@ -68,7 +68,7 @@ export class Renderer {
       new Uint8Array([128, 128, 128, 255]))
     this._setTexParams()
 
-    const defaultPts: CurvePoint[] = [[0,0],[0.25,0.25],[0.75,0.75],[1,1]]
+    const defaultPts: CurvePoint[] = [[0,0],[1,1]]
     this.curveLUT_r = this._createLUTTexture()
     this.curveLUT_g = this._createLUTTexture()
     this.curveLUT_b = this._createLUTTexture()
@@ -159,10 +159,10 @@ export class Renderer {
     }
     const x0 = points[seg][0], x1 = points[seg + 1][0]
     const lt = x1 === x0 ? 0 : (t - x0) / (x1 - x0)
-    const p0 = points[Math.max(0, seg - 1)]
     const p1 = points[seg]
-    const p2 = points[Math.min(n, seg + 1)]
-    const p3 = points[Math.min(n, seg + 2)]
+    const p2 = points[seg + 1]
+    const p0: CurvePoint = seg > 0 ? points[seg - 1] : [2*p1[0]-p2[0], 2*p1[1]-p2[1]]
+    const p3: CurvePoint = seg < n - 1 ? points[seg + 2] : [2*p2[0]-p1[0], 2*p2[1]-p1[1]]
     const t2 = lt * lt, t3 = lt * lt * lt
     return Math.max(0, Math.min(1,
       (-t3 + 2*t2 - lt) * p0[1] * 0.5 +
@@ -281,7 +281,7 @@ export class Renderer {
     gl.uniform3fv(u['u_hsl'], hslData)
 
     const curve = state.curve ?? {}
-    const defaultPts: CurvePoint[] = [[0,0],[0.25,0.25],[0.75,0.75],[1,1]]
+    const defaultPts: CurvePoint[] = [[0,0],[1,1]]
     const defaultStr = JSON.stringify(defaultPts)
     // Support legacy format (old sessions had just `curve.points`)
     const legacy = (curve as Record<string, unknown>).points as CurvePoint[] | undefined
