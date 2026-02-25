@@ -295,13 +295,28 @@
     quality: 0.92,
 
     doExport() {
-      const canvas = document.getElementById('gl-canvas')
-      if (!canvas) return
+      const glCanvas = document.getElementById('gl-canvas')
+      if (!glCanvas) return
       const store = Alpine.store('editor')
       const { format, quality } = this
       const ext = format === 'image/png' ? 'png' : 'jpg'
       const basename = store.filename.replace(/\.[^.]+$/, '') || 'edited'
-      canvas.toBlob(
+
+      // Crop is only a CSS clip-path — blit the crop sub-rect into a
+      // temporary 2D canvas so the export reflects the actual crop region.
+      const { x, y, w, h } = store.crop
+      const srcX = Math.round(x * glCanvas.width)
+      const srcY = Math.round(y * glCanvas.height)
+      const srcW = Math.round(w * glCanvas.width)
+      const srcH = Math.round(h * glCanvas.height)
+
+      const tmp = document.createElement('canvas')
+      tmp.width  = srcW
+      tmp.height = srcH
+      const ctx = tmp.getContext('2d')
+      ctx.drawImage(glCanvas, srcX, srcY, srcW, srcH, 0, 0, srcW, srcH)
+
+      tmp.toBlob(
         blob => {
           if (!blob) return
           const url = URL.createObjectURL(blob)
