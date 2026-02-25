@@ -51,11 +51,19 @@
     </div>
   </div>
 
-  <!-- Reset crop -->
-  <button
-    class="w-full py-2.5 font-mono text-[9px] uppercase tracking-[0.15em] border border-white/10 rounded-lg text-white/35 hover:text-white/60 hover:border-white/25 transition-all"
-    @click="$store.editor.crop = { x:0, y:0, w:1, h:1, angle:0, ratio:'free' }; $store.editor.pushHistory()"
-  >
-    RESET CROP
-  </button>
+  <!-- Accept / Reset -->
+  <div class="flex gap-2">
+    <button
+      class="flex-1 py-2.5 font-mono text-[9px] uppercase tracking-[0.15em] border border-white/10 rounded-lg text-white/35 hover:text-white/60 hover:border-white/25 transition-all"
+      @click="$store.editor.crop = { x:0, y:0, w:1, h:1, angle:0, ratio:'free' }; $store.editor.pushHistory()"
+    >
+      RESET
+    </button>
+    <button
+      class="flex-1 py-2.5 font-mono text-[9px] uppercase tracking-[0.15em] border border-white bg-white text-black rounded-lg hover:bg-white/90 transition-all"
+      @click="$store.editor.activePanel = 'light'"
+    >
+      APPLY
+    </button>
+  </div>
 </div>

@@ -4,7 +4,7 @@
 
 <div
   id="canvas-container"
-  class="absolute inset-0 overflow-hidden bg-white"
+  class="absolute inset-0 overflow-hidden bg-black"
   x-data="canvasView()"
   x-show="$store.editor.hasImage"
   x-cloak
@@ -18,6 +18,7 @@
       height: ${naturalH}px;
       transform: translate(${panX}px, ${panY}px) scale(${zoom});
       cursor: ${panning ? 'grabbing' : 'grab'};
+      clip-path: ${$store.editor.activePanel !== 'crop' ? cropClipPath() : 'none'};
     `"
     @mousedown="startPan($event)"
     @touchstart.passive="touchStart($event)"></canvas>
@@ -275,6 +276,11 @@
         Alpine.store('editor').pushHistory()
       })
 
+      // Re-fit when switching in/out of crop panel
+      this.$watch('$store.editor.activePanel', () => {
+        this.$nextTick(() => this.fitToScreen())
+      })
+
       // Restore last session on page load
       this._tryRestoreSession()
 
@@ -511,6 +517,15 @@
       window.addEventListener('touchend', onEnd)
     },
 
+    cropClipPath() {
+      const { x, y, w, h } = this.$store.editor.crop
+      const top    = (y * 100).toFixed(3) + '%'
+      const right  = ((1 - x - w) * 100).toFixed(3) + '%'
+      const bottom = ((1 - y - h) * 100).toFixed(3) + '%'
+      const left   = (x * 100).toFixed(3) + '%'
+      return `inset(${top} ${right} ${bottom} ${left})`
+    },
+
     fitToScreen() {
       const container = this.$el
       const cw = container.clientWidth
@@ -520,11 +535,29 @@
         requestAnimationFrame(() => this.fitToScreen())
         return
       }
-      const scaleX = cw / this.naturalW
-      const scaleY = ch / this.naturalH
-      this.zoom = Math.min(scaleX, scaleY) * 0.95
-      this.panX = (cw - this.naturalW * this.zoom) / 2
-      this.panY = (ch - this.naturalH * this.zoom) / 2
+      const inCropPanel = this.$store.editor.activePanel === 'crop'
+      const crop = this.$store.editor.crop
+
+      if (inCropPanel) {
+        // Show full image while editing crop
+        const scaleX = cw / this.naturalW
+        const scaleY = ch / this.naturalH
+        this.zoom = Math.min(scaleX, scaleY) * 0.95
+        this.panX = (cw - this.naturalW * this.zoom) / 2
+        this.panY = (ch - this.naturalH * this.zoom) / 2
+      } else {
+        // Fit the crop region to the viewport
+        const cropPxW = crop.w * this.naturalW
+        const cropPxH = crop.h * this.naturalH
+        const scaleX = cw / cropPxW
+        const scaleY = ch / cropPxH
+        this.zoom = Math.min(scaleX, scaleY) * 0.95
+        // Position full canvas so the crop region is centred
+        const screenCropW = cropPxW * this.zoom
+        const screenCropH = cropPxH * this.zoom
+        this.panX = (cw - screenCropW) / 2 - crop.x * this.naturalW * this.zoom
+        this.panY = (ch - screenCropH) / 2 - crop.y * this.naturalH * this.zoom
+      }
     },
   }))
 </script>
