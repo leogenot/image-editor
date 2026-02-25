@@ -15,6 +15,8 @@ const {
   step = 0.01,
   decimals = 2,
 } = Astro.props
+const range = Number(max) - Number(min)
+const pos = `50 + (${storeKey} / ${range}) * 100`
 ---
 <div class="py-2.5 border-b border-white/[0.04] last:border-0">
   <div class="flex justify-between items-baseline mb-2">
@@ -35,10 +37,7 @@ const {
     <!-- We use a div sized/positioned by the current value -->
     <div
       class="absolute top-1/2 -translate-y-1/2 h-px bg-white/70"
-      :style="`
-        left: ${Math.min(50, 50 + (${storeKey} / (${max} - ${min})) * 100)}%;
-        right: ${100 - Math.max(50, 50 + (${storeKey} / (${max} - ${min})) * 100)}%;
-      `"
+      :style={`\`left: \${Math.min(50, ${pos})}%;right: \${100 - Math.max(50, ${pos})}%;\``}
     ></div>
 
     <!-- Center tick mark -->
@@ -47,7 +46,7 @@ const {
     <!-- Custom thumb -->
     <div
       class="absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-white rounded-sm pointer-events-none -translate-x-1/2"
-      :style="`left: ${50 + (${storeKey} / (${max} - ${min})) * 100}%`"
+      :style={`\`left: \${${pos}}%\``}
     ></div>
 
     <!-- Actual range input (invisible, full-size touch target) -->
