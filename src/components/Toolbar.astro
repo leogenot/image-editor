@@ -135,12 +135,12 @@
   >
     <div class="flex items-center justify-between">
       <p
-        class="font-mono text-[10px] text-black/50 uppercase tracking-[0.15em]"
+        class="font-mono text-[10px] text-white/60 uppercase tracking-[0.15em]"
       >
         Export Image
       </p>
       <button
-        class="text-black/30 hover: text-black/60 transition-colors"
+        class="text-white/40 hover:text-white/70 transition-colors"
         @click="$store.editor.exportOpen = false"
       >
         <svg width="12" height="12" viewBox="0 0 12 12">
@@ -167,7 +167,7 @@
     <!-- Format selector -->
     <div class="flex flex-col gap-2">
       <label
-        class="font-mono text-[9px] text-black/30 uppercase tracking-[0.1em]"
+        class="font-mono text-[9px] text-white/40 uppercase tracking-[0.1em]"
         >Format</label
       >
       <div class="grid grid-cols-3 gap-1.5">
@@ -181,8 +181,8 @@
           <button
             class="py-2 font-mono text-[9px] uppercase tracking-wider border rounded-lg transition-all"
             :class="format === f.val
-              ? 'border-white bg-white  text-black'
-              : 'border-white/10  text-black/40 hover:border-white/25'"
+              ? 'border-white bg-white text-black'
+              : 'border-white/10 text-white/40 hover:border-white/25 hover:text-white/60'"
             @click="format = f.val"
             x-text="f.label"></button>
         </template>
@@ -193,11 +193,11 @@
     <div class="flex flex-col gap-2" x-show="format !== 'image/png'">
       <div class="flex justify-between">
         <label
-          class="font-mono text-[9px] text-black/30 uppercase tracking-[0.1em]"
+          class="font-mono text-[9px] text-white/40 uppercase tracking-[0.1em]"
           >Quality</label
         >
         <span
-          class="font-mono text-[10px] text-black tabular-nums"
+          class="font-mono text-[10px] text-white/80 tabular-nums"
           x-text="Math.round(quality * 100) + '%'"></span>
       </div>
       <input
@@ -213,7 +213,7 @@
     <!-- Action buttons -->
     <div class="flex gap-2 mt-1">
       <button
-        class="flex-1 py-2.5 font-mono text-[9px] uppercase tracking-[0.1em] border border-white/10 rounded-lg text-black/40 hover: text-black/60 transition-colors"
+        class="flex-1 py-2.5 font-mono text-[9px] uppercase tracking-[0.1em] border border-white/10 rounded-lg text-white/40 hover:text-white/70 transition-colors"
         @click="$store.editor.exportOpen = false">Cancel</button
       >
       <button
