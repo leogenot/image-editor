@@ -124,6 +124,7 @@
 <!-- Export dialog -->
 <div
   class="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+  x-data="exportDialog()"
   x-show="$store.editor.exportOpen"
   x-cloak
   @click.self="$store.editor.exportOpen = false"
@@ -131,7 +132,6 @@
 >
   <div
     class="flex flex-col gap-5 p-6 w-[280px] rounded-2xl border border-white/[0.08] bg-black/90 backdrop-blur-xl"
-    x-data="{ format: 'image/jpeg', quality: 0.92 }"
   >
     <div class="flex items-center justify-between">
       <p
@@ -218,7 +218,7 @@
       >
       <button
         class="flex-1 py-2.5 font-mono text-[9px] uppercase tracking-[0.15em] bg-white text-black rounded-lg hover:bg-white/90 transition-colors"
-        @click="doExport(format, quality)">Download</button
+        @click="doExport()">Download</button
       >
     </div>
   </div>
@@ -276,10 +276,17 @@
       }
     },
 
-    async doExport(format, quality) {
+  }))
+
+  Alpine.data('exportDialog', () => ({
+    format: 'image/jpeg',
+    quality: 0.92,
+
+    doExport() {
       const canvas = document.getElementById('gl-canvas')
       if (!canvas) return
       const store = Alpine.store('editor')
+      const { format, quality } = this
       const ext =
         format === 'image/png'
           ? 'png'
