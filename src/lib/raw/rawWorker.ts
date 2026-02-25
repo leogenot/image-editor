@@ -1,42 +1,18 @@
 // RAW decoding Web Worker
-// Uses LibRaw WASM when available, otherwise returns an error with helpful message
+// Uses browser-native decoding (works for DNG and some RAW formats).
+// For full LibRaw WASM support, place libraw.js in public/ and implement
+// a module-safe loader here.
 
-let librawReady = false
-let librawModule = null
-
-async function tryLoadLibRaw() {
-  // Try loading from public directory
-  try {
-    // Dynamic import of the WASM module
-    const response = await fetch('/libraw.js')
-    if (!response.ok) throw new Error('libraw.js not found in public/')
-
-    // If we got here, WASM file exists — evaluate it
-    const scriptText = await response.text()
-    // eslint-disable-next-line no-new-func
-    const moduleFactory = new Function('module', scriptText + '\nreturn module.exports || LibRaw')
-    librawModule = await moduleFactory({})
-    if (typeof librawModule === 'function') {
-      librawModule = await librawModule()
-    }
-    librawReady = true
-    return true
-  } catch (e) {
-    console.warn('LibRaw WASM not available:', e.message)
-    return false
-  }
-}
+import type { RawWorkerRequest, RawDecodeResult } from '../../types'
 
 // Fallback: decode using browser's built-in capabilities via OffscreenCanvas
-async function fallbackDecode(buffer, filename) {
+async function fallbackDecode(buffer: ArrayBuffer, filename: string): Promise<RawDecodeResult> {
   // For DNG and some RAW formats, browsers can sometimes handle them
-  // For others, we surface a helpful error
   const blob = new Blob([buffer])
   try {
     const bitmap = await createImageBitmap(blob)
-    // Browser decoded it natively — convert to Float32Array
     const canvas = new OffscreenCanvas(bitmap.width, bitmap.height)
-    const ctx = canvas.getContext('2d')
+    const ctx = canvas.getContext('2d')!
     ctx.drawImage(bitmap, 0, 0)
     const imageData = ctx.getImageData(0, 0, bitmap.width, bitmap.height)
     // Convert Uint8 sRGB to Float32 linear
@@ -50,7 +26,7 @@ async function fallbackDecode(buffer, filename) {
     }
     bitmap.close()
     return { pixels, width: canvas.width, height: canvas.height }
-  } catch (e) {
+  } catch {
     throw new Error(
       `Cannot decode ${filename}. LibRaw WASM is not installed. ` +
       `Please convert your RAW file to DNG or JPEG first using Adobe DNG Converter or your camera software.`
@@ -58,7 +34,7 @@ async function fallbackDecode(buffer, filename) {
   }
 }
 
-self.onmessage = async (e) => {
+self.onmessage = async (e: MessageEvent<RawWorkerRequest>) => {
   const { id, buffer, filename } = e.data
 
   try {
@@ -66,6 +42,6 @@ self.onmessage = async (e) => {
     const result = await fallbackDecode(buffer, filename)
     self.postMessage({ id, ...result }, [result.pixels.buffer])
   } catch (err) {
-    self.postMessage({ id, error: err.message })
+    self.postMessage({ id, error: (err as Error).message })
   }
 }

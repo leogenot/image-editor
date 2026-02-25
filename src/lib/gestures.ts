@@ -1,17 +1,18 @@
+import type { GestureCallbacks } from '../types'
+
 // Touch gesture handler: pinch-zoom, two-finger pan, double-tap to fit, mouse wheel zoom
 
-export function setupGestures(element, callbacks) {
+export function setupGestures(element: HTMLElement, callbacks: GestureCallbacks): void {
   let lastTapTime = 0
   let lastDist = 0
   let lastMidX = 0
   let lastMidY = 0
-  let isTwoFinger = false
 
-  function getTouchDist(t1, t2) {
+  function getTouchDist(t1: Touch, t2: Touch): number {
     return Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY)
   }
 
-  function getMid(t1, t2) {
+  function getMid(t1: Touch, t2: Touch): { x: number; y: number } {
     return {
       x: (t1.clientX + t2.clientX) / 2,
       y: (t1.clientY + t2.clientY) / 2,
@@ -25,9 +26,7 @@ export function setupGestures(element, callbacks) {
         callbacks.doubleTap?.()
       }
       lastTapTime = now
-      isTwoFinger = false
     } else if (e.touches.length === 2) {
-      isTwoFinger = true
       const mid = getMid(e.touches[0], e.touches[1])
       lastDist = getTouchDist(e.touches[0], e.touches[1])
       lastMidX = mid.x

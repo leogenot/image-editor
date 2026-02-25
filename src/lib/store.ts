@@ -1,15 +1,21 @@
-export function createEditorStore(Alpine) {
-  Alpine.store('editor', {
+import type { Alpine } from 'alpinejs'
+import type { EditorStore, EditState, CurvePoint, HSLKey } from '../types'
+
+export function createEditorStore(Alpine: Alpine): void {
+  const defaultCurvePts = (): CurvePoint[] => [[0, 0], [0.25, 0.25], [0.75, 0.75], [1, 1]]
+
+  // ThisType<EditorStore> gives correct `this` context inside all methods
+  const storeDefinition: EditorStore & ThisType<EditorStore> = {
     // File state
     file: null,
     filename: '',
-    imageData: null,   // ImageBitmap or null
-    rawPixels: null,   // Float32Array for RAW files
+    imageData: null,
+    rawPixels: null,
     isRaw: false,
     width: 0,
     height: 0,
     hasImage: false,
-    histogram: null,  // { r, g, b } — 256-entry count arrays, derived from source image
+    histogram: null,
 
     // Edit values
     light: {
@@ -38,10 +44,10 @@ export function createEditorStore(Alpine) {
     },
     curve: {
       channel: 'rgb',
-      rgb: [[0, 0], [0.25, 0.25], [0.75, 0.75], [1, 1]],
-      r:   [[0, 0], [0.25, 0.25], [0.75, 0.75], [1, 1]],
-      g:   [[0, 0], [0.25, 0.25], [0.75, 0.75], [1, 1]],
-      b:   [[0, 0], [0.25, 0.25], [0.75, 0.75], [1, 1]],
+      rgb: defaultCurvePts(),
+      r:   defaultCurvePts(),
+      g:   defaultCurvePts(),
+      b:   defaultCurvePts(),
     },
     detail: {
       sharpness: 0,
@@ -92,30 +98,36 @@ export function createEditorStore(Alpine) {
       this._historyIndex = this._history.length - 1
     },
 
-    applyEditState(state) {
-      Object.assign(this.light, state.light)
-      Object.assign(this.color, {
-        temp: state.color.temp,
-        tint: state.color.tint,
-        vibrance: state.color.vibrance,
-        saturation: state.color.saturation,
-      })
-      for (const key of Object.keys(state.color.hsl)) {
-        Object.assign(this.color.hsl[key], state.color.hsl[key])
+    applyEditState(state: Partial<EditState>) {
+      if (state.light) Object.assign(this.light, state.light)
+      if (state.color) {
+        Object.assign(this.color, {
+          temp: state.color.temp,
+          tint: state.color.tint,
+          vibrance: state.color.vibrance,
+          saturation: state.color.saturation,
+        })
+        if (state.color.hsl) {
+          for (const key of Object.keys(state.color.hsl) as HSLKey[]) {
+            Object.assign(this.color.hsl[key], state.color.hsl[key])
+          }
+        }
       }
-      const defaultPts = [[0,0],[0.25,0.25],[0.75,0.75],[1,1]]
-      this.curve.channel = state.curve.channel || 'rgb'
-      // Support legacy format (old sessions had just `points`)
-      const legacy = state.curve.points
-      this.curve.rgb = state.curve.rgb || (legacy ? legacy.map(p=>[...p]) : defaultPts.map(p=>[...p]))
-      this.curve.r   = state.curve.r   || defaultPts.map(p=>[...p])
-      this.curve.g   = state.curve.g   || defaultPts.map(p=>[...p])
-      this.curve.b   = state.curve.b   || defaultPts.map(p=>[...p])
-      Object.assign(this.detail, state.detail)
+      if (state.curve) {
+        const defaultPts = defaultCurvePts()
+        // Support legacy format (old sessions had just `points`)
+        const legacy = (state.curve as Record<string, unknown>).points as CurvePoint[] | undefined
+        this.curve.channel = state.curve.channel ?? 'rgb'
+        this.curve.rgb = state.curve.rgb ?? (legacy ? legacy.map(p => [...p] as CurvePoint) : defaultPts)
+        this.curve.r   = state.curve.r   ?? defaultCurvePts()
+        this.curve.g   = state.curve.g   ?? defaultCurvePts()
+        this.curve.b   = state.curve.b   ?? defaultCurvePts()
+      }
+      if (state.detail) Object.assign(this.detail, state.detail)
       if (state.crop) Object.assign(this.crop, state.crop)
     },
 
-    _applySnapshot(snap) {
+    _applySnapshot(snap: string) {
       this.applyEditState(JSON.parse(snap))
       window.dispatchEvent(new CustomEvent('editor:render'))
     },
@@ -132,20 +144,27 @@ export function createEditorStore(Alpine) {
       this._applySnapshot(this._history[this._historyIndex])
     },
 
+    clearHistory() {
+      this._history = []
+      this._historyIndex = -1
+    },
+
     resetEdits() {
       Object.assign(this.light, { exposure: 0, contrast: 0, highlights: 0, shadows: 0, whites: 0, blacks: 0 })
       Object.assign(this.color, { temp: 0, tint: 0, vibrance: 0, saturation: 0 })
-      for (const key of Object.keys(this.color.hsl)) {
+      for (const key of Object.keys(this.color.hsl) as HSLKey[]) {
         Object.assign(this.color.hsl[key], { h: 0, s: 0, l: 0 })
       }
-      const defaultCurvePts = [[0,0],[0.25,0.25],[0.75,0.75],[1,1]]
-      this.curve.rgb = defaultCurvePts.map(p=>[...p])
-      this.curve.r   = defaultCurvePts.map(p=>[...p])
-      this.curve.g   = defaultCurvePts.map(p=>[...p])
-      this.curve.b   = defaultCurvePts.map(p=>[...p])
+      const defaultCurvePtsLocal = [[0,0],[0.25,0.25],[0.75,0.75],[1,1]] as CurvePoint[]
+      this.curve.rgb = defaultCurvePtsLocal.map(p => [...p] as CurvePoint)
+      this.curve.r   = defaultCurvePtsLocal.map(p => [...p] as CurvePoint)
+      this.curve.g   = defaultCurvePtsLocal.map(p => [...p] as CurvePoint)
+      this.curve.b   = defaultCurvePtsLocal.map(p => [...p] as CurvePoint)
       Object.assign(this.detail, { sharpness: 0, noiseReduction: 0 })
       this.pushHistory()
       window.dispatchEvent(new CustomEvent('editor:render'))
     },
-  })
+  }
+
+  Alpine.store('editor', storeDefinition)
 }

@@ -1,6 +1,6 @@
 // Swipe gesture handler for mobile bottom sheet
 
-export function setupBottomSheet(el) {
+export function setupBottomSheet(el: HTMLElement): void {
   const COLLAPSED_H = 240  // px when collapsed
   const EXPANDED_H = Math.min(window.innerHeight * 0.65, 520) // px when expanded
 
@@ -8,7 +8,7 @@ export function setupBottomSheet(el) {
   let startH = 0
   let isDragging = false
 
-  function setHeight(h, animate = false) {
+  function setHeight(h: number, animate = false): void {
     if (animate) {
       el.style.transition = 'height 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
     } else {
@@ -17,11 +17,9 @@ export function setupBottomSheet(el) {
     el.style.height = Math.round(h) + 'px'
   }
 
-  // Set initial height
   setHeight(COLLAPSED_H)
 
-  // Find drag handle
-  const handle = el.querySelector('[data-handle]')
+  const handle = el.querySelector<HTMLElement>('[data-handle]')
   if (!handle) return
 
   handle.addEventListener('touchstart', (e) => {
@@ -42,7 +40,6 @@ export function setupBottomSheet(el) {
     if (!isDragging) return
     isDragging = false
     const h = el.offsetHeight
-    // Snap to expanded or collapsed
     const mid = (COLLAPSED_H + EXPANDED_H) / 2
     setHeight(h > mid ? EXPANDED_H : COLLAPSED_H, true)
   }, { passive: true })

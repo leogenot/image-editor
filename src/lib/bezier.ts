@@ -1,12 +1,13 @@
+import type { CurvePoint } from '../types'
+
 // Catmull-Rom spline evaluation through sorted control points
 // points: array of [x, y] pairs, sorted by x ascending, x and y in [0, 1]
 // t: input x value in [0, 1]
 // returns: output y value in [0, 1]
-export function evalCurve(points, t) {
+export function evalCurve(points: CurvePoint[], t: number): number {
   const n = points.length - 1
   if (n < 1) return t
 
-  // Find segment
   let seg = n - 1
   for (let i = 0; i < n; i++) {
     if (t <= points[i + 1][0]) {
@@ -15,7 +16,6 @@ export function evalCurve(points, t) {
     }
   }
 
-  // Local t within segment [0, 1]
   const x0 = points[seg][0]
   const x1 = points[seg + 1][0]
   const lt = x1 === x0 ? 0 : (t - x0) / (x1 - x0)
@@ -40,9 +40,9 @@ export function evalCurve(points, t) {
 
 // Build SVG polyline path string from curve control points
 // width, height: SVG viewport dimensions
-export function buildCurvePath(points, width, height) {
+export function buildCurvePath(points: CurvePoint[], width: number, height: number): string {
   const steps = 128
-  const pts = []
+  const pts: string[] = []
   for (let i = 0; i <= steps; i++) {
     const t = i / steps
     const v = evalCurve(points, t)

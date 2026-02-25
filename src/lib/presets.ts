@@ -1,4 +1,6 @@
-export const PRESETS = [
+import type { Preset } from '../types'
+
+export const PRESETS: Preset[] = [
   {
     id: 'vivid',
     name: 'VIVID',

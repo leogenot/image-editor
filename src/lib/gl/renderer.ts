@@ -1,23 +1,40 @@
 import vertSrc from './shader.vert?raw'
 import fragSrc from './shader.frag?raw'
 import sharpFragSrc from './sharp.frag?raw'
+import type { RenderState, CurvePoint } from '../../types'
 
 export class Renderer {
-  constructor(canvas) {
+  private canvas: HTMLCanvasElement
+  private gl: WebGL2RenderingContext
+  private program!: WebGLProgram
+  private sharpProgram!: WebGLProgram
+  private vao!: WebGLVertexArrayObject
+  private sharpVao!: WebGLVertexArrayObject
+  private texture!: WebGLTexture
+  private fboTexture!: WebGLTexture
+  private fbo!: WebGLFramebuffer
+  private curveLUT_r!: WebGLTexture
+  private curveLUT_g!: WebGLTexture
+  private curveLUT_b!: WebGLTexture
+  private _isFloat = false
+  private _lastState: RenderState | null = null
+  private _fboSize = { w: 0, h: 0 }
+  private _u: Record<string, WebGLUniformLocation | null> = {}
+  private _su: Record<string, WebGLUniformLocation | null> = {}
+
+  constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas
-    this.gl = canvas.getContext('webgl2', {
+    const gl = canvas.getContext('webgl2', {
       alpha: false,
       antialias: false,
       preserveDrawingBuffer: true,
     })
-    if (!this.gl) throw new Error('WebGL2 not supported')
-    this._isFloat = false
-    this._lastState = null
-    this._fboSize = { w: 0, h: 0 }
+    if (!gl) throw new Error('WebGL2 not supported')
+    this.gl = gl
     this._init()
   }
 
-  _init() {
+  private _init(): void {
     const gl = this.gl
 
     // --- Pass 1: main edit program ---
@@ -25,9 +42,9 @@ export class Renderer {
 
     // Fullscreen quad
     const positions = new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1])
-    this.vao = gl.createVertexArray()
+    this.vao = gl.createVertexArray()!
     gl.bindVertexArray(this.vao)
-    const buf = gl.createBuffer()
+    const buf = gl.createBuffer()!
     gl.bindBuffer(gl.ARRAY_BUFFER, buf)
     gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW)
     const loc = gl.getAttribLocation(this.program, 'a_position')
@@ -35,39 +52,38 @@ export class Renderer {
     gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0)
 
     // VAO for sharp pass (same geometry, different program)
-    this.sharpVao = gl.createVertexArray()
+    this.sharpVao = gl.createVertexArray()!
     gl.bindVertexArray(this.sharpVao)
     gl.bindBuffer(gl.ARRAY_BUFFER, buf) // reuse same buffer
     gl.bindVertexArray(null)
 
     // --- Textures ---
-    this.texture = gl.createTexture()
+    this.texture = gl.createTexture()!
     gl.bindTexture(gl.TEXTURE_2D, this.texture)
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
       new Uint8Array([128, 128, 128, 255]))
     this._setTexParams()
 
-    const defaultPts = [[0,0],[0.25,0.25],[0.75,0.75],[1,1]]
+    const defaultPts: CurvePoint[] = [[0,0],[0.25,0.25],[0.75,0.75],[1,1]]
     this.curveLUT_r = this._createLUTTexture()
     this.curveLUT_g = this._createLUTTexture()
     this.curveLUT_b = this._createLUTTexture()
     this._buildChannelLUTs(defaultPts, defaultPts, defaultPts, defaultPts)
 
     // FBO texture (for first pass output when sharpening/NR active)
-    this.fboTexture = gl.createTexture()
+    this.fboTexture = gl.createTexture()!
     gl.bindTexture(gl.TEXTURE_2D, this.fboTexture)
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
     this._setTexParams()
 
     // Framebuffer
-    this.fbo = gl.createFramebuffer()
+    this.fbo = gl.createFramebuffer()!
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo)
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.fboTexture, 0)
     gl.bindFramebuffer(gl.FRAMEBUFFER, null)
 
     // --- Pass 1 uniforms ---
     gl.useProgram(this.program)
-    this._u = {}
     for (const name of [
       'u_texture', 'u_curveLUT_r', 'u_curveLUT_g', 'u_curveLUT_b', 'u_isFloat', 'u_useCurve',
       'u_exposure', 'u_contrast', 'u_highlights', 'u_shadows', 'u_whites', 'u_blacks',
@@ -88,13 +104,12 @@ export class Renderer {
     gl.vertexAttribPointer(sharpLoc, 2, gl.FLOAT, false, 0, 0)
     gl.bindVertexArray(null)
 
-    this._su = {}
     for (const name of ['u_texture', 'u_texelSize', 'u_sharpness', 'u_noiseReduction']) {
       this._su[name] = gl.getUniformLocation(this.sharpProgram, name)
     }
   }
 
-  _setTexParams() {
+  private _setTexParams(): void {
     const gl = this.gl
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
@@ -102,9 +117,9 @@ export class Renderer {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
   }
 
-  _createShader(type, src) {
+  private _createShader(type: number, src: string): WebGLShader {
     const gl = this.gl
-    const shader = gl.createShader(type)
+    const shader = gl.createShader(type)!
     gl.shaderSource(shader, src)
     gl.compileShader(shader)
     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
@@ -115,11 +130,11 @@ export class Renderer {
     return shader
   }
 
-  _createProgram(vert, frag) {
+  private _createProgram(vert: string, frag: string): WebGLProgram {
     const gl = this.gl
     const vs = this._createShader(gl.VERTEX_SHADER, vert)
     const fs = this._createShader(gl.FRAGMENT_SHADER, frag)
-    const prog = gl.createProgram()
+    const prog = gl.createProgram()!
     gl.attachShader(prog, vs)
     gl.attachShader(prog, fs)
     gl.linkProgram(prog)
@@ -131,7 +146,7 @@ export class Renderer {
     return prog
   }
 
-  _evalCurve(points, t) {
+  private _evalCurve(points: CurvePoint[], t: number): number {
     const n = points.length - 1
     if (n < 1) return t
     let seg = n - 1
@@ -153,9 +168,9 @@ export class Renderer {
     ))
   }
 
-  _createLUTTexture() {
+  private _createLUTTexture(): WebGLTexture {
     const gl = this.gl
-    const tex = gl.createTexture()
+    const tex = gl.createTexture()!
     gl.bindTexture(gl.TEXTURE_2D, tex)
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, 256, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
     this._setTexParams()
@@ -163,7 +178,7 @@ export class Renderer {
   }
 
   // Compose rgb curve with a per-channel curve and upload to texture
-  _buildComposedLUT(rgbPts, channelPts, texture) {
+  private _buildComposedLUT(rgbPts: CurvePoint[], channelPts: CurvePoint[], texture: WebGLTexture): void {
     const gl = this.gl
     const lut = new Uint8Array(256 * 4)
     for (let i = 0; i < 256; i++) {
@@ -178,13 +193,13 @@ export class Renderer {
     this._setTexParams()
   }
 
-  _buildChannelLUTs(rgbPts, rPts, gPts, bPts) {
+  private _buildChannelLUTs(rgbPts: CurvePoint[], rPts: CurvePoint[], gPts: CurvePoint[], bPts: CurvePoint[]): void {
     this._buildComposedLUT(rgbPts, rPts, this.curveLUT_r)
     this._buildComposedLUT(rgbPts, gPts, this.curveLUT_g)
     this._buildComposedLUT(rgbPts, bPts, this.curveLUT_b)
   }
 
-  _resizeFBO(w, h) {
+  private _resizeFBO(w: number, h: number): void {
     if (this._fboSize.w === w && this._fboSize.h === h) return
     const gl = this.gl
     gl.bindTexture(gl.TEXTURE_2D, this.fboTexture)
@@ -193,16 +208,17 @@ export class Renderer {
     this._fboSize = { w, h }
   }
 
-  loadImage(imageBitmap) {
+  loadImage(imageBitmap: ImageBitmap): void {
     const gl = this.gl
     gl.bindTexture(gl.TEXTURE_2D, this.texture)
+    // @ts-expect-error — WebGL2 texImage2D accepts ImageBitmap but TS lib is missing this overload
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, imageBitmap)
     this._setTexParams()
     this._isFloat = false
     if (this._lastState) this.render(this._lastState)
   }
 
-  loadRawPixels(pixels, width, height) {
+  loadRawPixels(pixels: Float32Array, width: number, height: number): void {
     const gl = this.gl
     gl.bindTexture(gl.TEXTURE_2D, this.texture)
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, gl.FLOAT, pixels)
@@ -211,7 +227,7 @@ export class Renderer {
     if (this._lastState) this.render(this._lastState)
   }
 
-  _drawPass1(state) {
+  private _drawPass1(state: RenderState): void {
     const gl = this.gl
     const u = this._u
 
@@ -234,7 +250,7 @@ export class Renderer {
     gl.bindTexture(gl.TEXTURE_2D, this.curveLUT_b)
     gl.uniform1i(u['u_curveLUT_b'], 3)
 
-    const light = state.light || {}
+    const light = state.light ?? {}
     gl.uniform1f(u['u_exposure'],   light.exposure   ?? 0)
     gl.uniform1f(u['u_contrast'],   light.contrast   ?? 0)
     gl.uniform1f(u['u_highlights'], light.highlights ?? 0)
@@ -242,27 +258,28 @@ export class Renderer {
     gl.uniform1f(u['u_whites'],     light.whites     ?? 0)
     gl.uniform1f(u['u_blacks'],     light.blacks     ?? 0)
 
-    const color = state.color || {}
+    const color = state.color ?? {}
     gl.uniform1f(u['u_temp'],       color.temp       ?? 0)
     gl.uniform1f(u['u_tint'],       color.tint       ?? 0)
     gl.uniform1f(u['u_vibrance'],   color.vibrance   ?? 0)
     gl.uniform1f(u['u_saturation'], color.saturation ?? 0)
 
-    const hslKeys = ['red','orange','yellow','green','aqua','blue','purple','magenta']
+    const hslKeys = ['red','orange','yellow','green','aqua','blue','purple','magenta'] as const
     const hslData = new Float32Array(hslKeys.flatMap(k => {
-      const v = color.hsl?.[k] || { h: 0, s: 0, l: 0 }
+      const v = color.hsl?.[k] ?? { h: 0, s: 0, l: 0 }
       return [v.h, v.s, v.l]
     }))
     gl.uniform3fv(u['u_hsl'], hslData)
 
-    const curve = state.curve || {}
-    const defaultPts = [[0,0],[0.25,0.25],[0.75,0.75],[1,1]]
+    const curve = state.curve ?? {}
+    const defaultPts: CurvePoint[] = [[0,0],[0.25,0.25],[0.75,0.75],[1,1]]
     const defaultStr = JSON.stringify(defaultPts)
     // Support legacy format (old sessions had just `curve.points`)
-    const rgbPts = curve.rgb || curve.points || defaultPts
-    const rPts   = curve.r   || defaultPts
-    const gPts   = curve.g   || defaultPts
-    const bPts   = curve.b   || defaultPts
+    const legacy = (curve as Record<string, unknown>).points as CurvePoint[] | undefined
+    const rgbPts = curve.rgb ?? legacy ?? defaultPts
+    const rPts   = curve.r   ?? defaultPts
+    const gPts   = curve.g   ?? defaultPts
+    const bPts   = curve.b   ?? defaultPts
     const isIdentity =
       JSON.stringify(rgbPts) === defaultStr &&
       JSON.stringify(rPts)   === defaultStr &&
@@ -276,11 +293,11 @@ export class Renderer {
     gl.bindVertexArray(null)
   }
 
-  _drawPass2(state) {
+  private _drawPass2(state: RenderState): void {
     const gl = this.gl
     const su = this._su
     const w = gl.canvas.width, h = gl.canvas.height
-    const detail = state.detail || {}
+    const detail = state.detail ?? {}
 
     gl.useProgram(this.sharpProgram)
     gl.bindVertexArray(this.sharpVao)
@@ -296,11 +313,11 @@ export class Renderer {
     gl.bindVertexArray(null)
   }
 
-  render(state) {
+  render(state: RenderState): void {
     this._lastState = state
     const gl = this.gl
     const w = gl.canvas.width, h = gl.canvas.height
-    const detail = state.detail || {}
+    const detail = state.detail ?? {}
     const needsSecondPass =
       (detail.sharpness ?? 0) > 0.01 ||
       (detail.noiseReduction ?? 0) > 0.01
@@ -321,12 +338,12 @@ export class Renderer {
     }
   }
 
-  async exportBlob(state, format = 'image/jpeg', quality = 0.95) {
+  async exportBlob(state: RenderState, format = 'image/jpeg', quality = 0.95): Promise<Blob | null> {
     this.render(state)
     return new Promise(resolve => this.canvas.toBlob(resolve, format, quality))
   }
 
-  resize(w, h) {
+  resize(w: number, h: number): void {
     this.canvas.width = w
     this.canvas.height = h
   }

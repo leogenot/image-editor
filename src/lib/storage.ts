@@ -1,10 +1,17 @@
 import { get, set, del, keys } from 'idb-keyval'
+import type { EditorStore, SessionData } from '../types'
 
 const MAX_SESSIONS = 20
 const PREFIX = 'editor_session_'
 const LAST_IMAGE_KEY = 'editor_last_image'
 
-function serializeEdits(store) {
+interface LastImageEntry {
+  blob: Blob
+  isRaw: boolean
+  filename: string
+}
+
+function serializeEdits(store: EditorStore): SessionData {
   return {
     light: { ...store.light },
     color: {
@@ -16,10 +23,10 @@ function serializeEdits(store) {
     },
     curve: {
       channel: store.curve.channel,
-      rgb: store.curve.rgb.map(p => [...p]),
-      r:   store.curve.r.map(p => [...p]),
-      g:   store.curve.g.map(p => [...p]),
-      b:   store.curve.b.map(p => [...p]),
+      rgb: store.curve.rgb.map(p => [...p] as [number, number]),
+      r:   store.curve.r.map(p => [...p] as [number, number]),
+      g:   store.curve.g.map(p => [...p] as [number, number]),
+      b:   store.curve.b.map(p => [...p] as [number, number]),
     },
     detail: { ...store.detail },
     crop: { ...store.crop },
@@ -28,26 +35,26 @@ function serializeEdits(store) {
   }
 }
 
-export async function saveLastImage(blob, isRaw, filename) {
+export async function saveLastImage(blob: Blob, isRaw: boolean, filename: string): Promise<void> {
   await set(LAST_IMAGE_KEY, { blob, isRaw, filename })
 }
 
-export async function loadLastImage() {
-  return get(LAST_IMAGE_KEY)
+export async function loadLastImage(): Promise<LastImageEntry | undefined> {
+  return get<LastImageEntry>(LAST_IMAGE_KEY)
 }
 
-async function blobToBase64(blob) {
+async function blobToBase64(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
-    reader.onload = () => resolve(reader.result)
+    reader.onload = () => resolve(reader.result as string)
     reader.onerror = reject
     reader.readAsDataURL(blob)
   })
 }
 
-export async function saveSession(store, previewBlob) {
+export async function saveSession(store: EditorStore, previewBlob?: Blob): Promise<void> {
   const key = `${PREFIX}${Date.now()}_${store.filename}`
-  const data = serializeEdits(store)
+  const data: SessionData & { preview?: string } = serializeEdits(store)
   if (previewBlob) {
     try {
       data.preview = await blobToBase64(previewBlob)
@@ -60,24 +67,27 @@ export async function saveSession(store, previewBlob) {
   // Prune oldest sessions beyond MAX_SESSIONS
   const allKeys = (await keys()).filter(k => String(k).startsWith(PREFIX))
   if (allKeys.length > MAX_SESSIONS) {
-    // Sort by timestamp embedded in key (oldest first)
     allKeys.sort()
     const toDelete = allKeys.slice(0, allKeys.length - MAX_SESSIONS)
     await Promise.all(toDelete.map(k => del(k)))
   }
 }
 
-export async function loadSessions() {
+export async function loadSessions(): Promise<Array<SessionData & { id: IDBValidKey }>> {
   const allKeys = (await keys()).filter(k => String(k).startsWith(PREFIX))
   const sessions = await Promise.all(
-    allKeys.map(k => get(k).then(v => ({ id: k, ...v })))
+    allKeys.map(k => get<SessionData>(k).then(v => ({ id: k, ...v! })))
   )
-  // Sort newest first
   return sessions
     .filter(s => s.savedAt)
     .sort((a, b) => b.savedAt - a.savedAt)
 }
 
-export async function deleteSession(id) {
+export async function deleteSession(id: IDBValidKey): Promise<void> {
   await del(id)
+}
+
+export async function clearSessions(): Promise<void> {
+  const allKeys = (await keys()).filter(k => String(k).startsWith(PREFIX))
+  await Promise.all(allKeys.map(k => del(k)))
 }

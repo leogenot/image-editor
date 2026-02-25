@@ -110,6 +110,15 @@
   >
     EXPORT
   </button>
+
+  <!-- Hidden file input for "open new image" — must be inside x-data="toolbar()" scope -->
+  <input
+    id="toolbar-file-input"
+    type="file"
+    class="hidden"
+    accept="image/*,.cr2,.cr3,.nef,.nrw,.arw,.dng,.orf,.rw2,.pef,.raf,.raw,.rwl"
+    @change="handleNewFile($event)"
+  />
 </div>
 
 <!-- Export dialog -->
@@ -215,20 +224,11 @@
   </div>
 </div>
 
-<!-- Hidden file input for "open new image" -->
-<input
-  id="toolbar-file-input"
-  type="file"
-  class="hidden"
-  accept="image/*,.cr2,.cr3,.nef,.nrw,.arw,.dng,.orf,.rw2,.pef,.raf,.raw,.rwl"
-  @change="handleNewFile($event)"
-/>
-
 <script>
   import Alpine from 'alpinejs'
   import { loadStandardImage, isRawFile } from '../lib/imageLoader.js'
   import { decodeRaw } from '../lib/raw/decoder.js'
-  import { saveLastImage } from '../lib/storage.js'
+  import { saveLastImage, clearSessions } from '../lib/storage.js'
 
   Alpine.data('toolbar', () => ({
     openNewImage() {
@@ -240,6 +240,8 @@
       if (!file) return
       event.target.value = ''
       const store = Alpine.store('editor')
+      store.clearHistory()
+      clearSessions().catch(() => {})
       store.filename = file.name
       try {
         if (isRawFile(file)) {
