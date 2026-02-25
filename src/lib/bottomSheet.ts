@@ -1,31 +1,35 @@
 // Swipe gesture handler for mobile bottom sheet
 
 export function setupBottomSheet(el: HTMLElement): void {
-  const COLLAPSED_H = 240  // px when collapsed
-  const EXPANDED_H = Math.min(window.innerHeight * 0.65, 520) // px when expanded
+  const COLLAPSED_H = 240  // px when collapsed (shows content)
+  const EXPANDED_H = Math.min(window.innerHeight * 0.65, 520)
   const SNAP_THRESHOLD = 10 // px — below this delta, treat as a tap
+
+  // Measure the peek height from actual DOM elements (handle + tab bar)
+  const handleEl = el.querySelector<HTMLElement>('[data-handle]')
+  const tabBarEl = el.querySelector<HTMLElement>('.flex.overflow-x-auto')
+  const PEEK_H = (handleEl?.offsetHeight ?? 28) + (tabBarEl?.offsetHeight ?? 44)
+
+  const SNAPS = [PEEK_H, COLLAPSED_H, EXPANDED_H]
 
   let startY = 0
   let startH = 0
   let isDragging = false
 
+  function snapNearest(h: number): number {
+    return SNAPS.reduce((best, s) => Math.abs(s - h) < Math.abs(best - h) ? s : best)
+  }
+
   function setHeight(h: number, animate = false): void {
-    if (animate) {
-      el.style.transition = 'height 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
-    } else {
-      el.style.transition = 'none'
-    }
+    el.style.transition = animate ? 'height 0.25s cubic-bezier(0.4, 0, 0.2, 1)' : 'none'
     el.style.height = Math.round(h) + 'px'
   }
 
   setHeight(COLLAPSED_H)
 
-  // Use the handle AND the tab bar as drag targets
-  const handle = el.querySelector<HTMLElement>('[data-handle]')
-  const tabBar = el.querySelector<HTMLElement>('.flex.overflow-x-auto')
-  if (!handle) return
+  if (!handleEl) return
 
-  const dragTargets = [handle, tabBar].filter(Boolean) as HTMLElement[]
+  const dragTargets = [handleEl, tabBarEl].filter(Boolean) as HTMLElement[]
 
   dragTargets.forEach(target => {
     target.addEventListener('touchstart', (e) => {
@@ -39,7 +43,7 @@ export function setupBottomSheet(el: HTMLElement): void {
   window.addEventListener('touchmove', (e) => {
     if (!isDragging) return
     const dy = startY - e.touches[0].clientY
-    const newH = Math.max(160, Math.min(EXPANDED_H + 40, startH + dy))
+    const newH = Math.max(PEEK_H - 20, Math.min(EXPANDED_H + 40, startH + dy))
     setHeight(newH)
     e.preventDefault()
   }, { passive: false })
@@ -50,16 +54,17 @@ export function setupBottomSheet(el: HTMLElement): void {
 
     const dy = startY - e.changedTouches[0].clientY
     const h = el.offsetHeight
-    const mid = (COLLAPSED_H + EXPANDED_H) / 2
 
-    // Tap: toggle between collapsed and expanded
+    // Tap: cycle peek → collapsed → expanded → collapsed
     if (Math.abs(dy) < SNAP_THRESHOLD) {
-      const isCollapsed = h <= COLLAPSED_H + 20
-      setHeight(isCollapsed ? EXPANDED_H : COLLAPSED_H, true)
+      const current = snapNearest(h)
+      if (current === PEEK_H) setHeight(COLLAPSED_H, true)
+      else if (current === COLLAPSED_H) setHeight(EXPANDED_H, true)
+      else setHeight(COLLAPSED_H, true)
       return
     }
 
-    // Drag: snap to nearest state
-    setHeight(h > mid ? EXPANDED_H : COLLAPSED_H, true)
+    // Drag: snap to nearest of 3 points
+    setHeight(snapNearest(h), true)
   }, { passive: true })
 }
