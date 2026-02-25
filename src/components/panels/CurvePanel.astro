@@ -1,0 +1,208 @@
+---
+---
+<div x-data="curveEditor()" class="flex flex-col gap-3 pt-2">
+  <!-- Channel selector -->
+  <div class="flex gap-1.5">
+    <template x-for="ch in ['RGB','R','G','B']" :key="ch">
+      <button
+        class="flex-1 py-1.5 font-mono text-[9px] uppercase tracking-wider border rounded-lg transition-all"
+        :class="$store.editor.curve.channel === ch.toLowerCase()
+          ? 'border-white bg-white text-black'
+          : 'border-white/10 text-white/35 hover:text-white/60 hover:border-white/25'"
+        @click="$store.editor.curve.channel = ch.toLowerCase()"
+        x-text="ch"
+      ></button>
+    </template>
+  </div>
+
+  <!-- SVG curve canvas -->
+  <div
+    class="relative rounded-xl overflow-hidden border border-white/[0.06] bg-white/[0.02]"
+    style="aspect-ratio: 1"
+  >
+    <svg
+      class="w-full h-full select-none touch-none"
+      viewBox="0 0 256 256"
+      x-ref="svg"
+      @mousedown="onMouseDown($event)"
+      @touchstart.prevent="onTouchStart($event)"
+    >
+      <!-- Grid -->
+      <line x1="64"  y1="0" x2="64"  y2="256" stroke="white" stroke-opacity="0.04" />
+      <line x1="128" y1="0" x2="128" y2="256" stroke="white" stroke-opacity="0.04" />
+      <line x1="192" y1="0" x2="192" y2="256" stroke="white" stroke-opacity="0.04" />
+      <line x1="0" y1="64"  x2="256" y2="64"  stroke="white" stroke-opacity="0.04" />
+      <line x1="0" y1="128" x2="256" y2="128" stroke="white" stroke-opacity="0.04" />
+      <line x1="0" y1="192" x2="256" y2="192" stroke="white" stroke-opacity="0.04" />
+      <!-- Diagonal reference -->
+      <line x1="0" y1="256" x2="256" y2="0" stroke="white" stroke-opacity="0.06" stroke-dasharray="4 4" />
+
+      <!-- Curve path -->
+      <path
+        :d="curvePath"
+        fill="none"
+        stroke="white"
+        stroke-opacity="0.85"
+        stroke-width="1.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+
+      <!-- Control points -->
+      <template x-for="(pt, i) in $store.editor.curve.points" :key="i">
+        <g>
+          <!-- Hit area (larger invisible circle) -->
+          <circle
+            :cx="pt[0] * 256"
+            :cy="(1 - pt[1]) * 256"
+            r="12"
+            fill="transparent"
+            class="cursor-grab active:cursor-grabbing"
+            @mousedown.stop="startDragPoint(i, $event)"
+            @touchstart.stop.prevent="startDragPointTouch(i, $event)"
+          />
+          <!-- Visible dot -->
+          <circle
+            :cx="pt[0] * 256"
+            :cy="(1 - pt[1]) * 256"
+            r="4"
+            fill="#000"
+            stroke="white"
+            stroke-width="1.5"
+            class="pointer-events-none"
+          />
+        </g>
+      </template>
+    </svg>
+  </div>
+
+  <!-- Reset curve -->
+  <button
+    class="w-full py-2 font-mono text-[9px] uppercase tracking-[0.15em] border border-white/10 rounded-lg text-white/30 hover:text-white/55 hover:border-white/25 transition-all"
+    @click="resetCurve()"
+  >
+    RESET CURVE
+  </button>
+</div>
+
+<script>
+import Alpine from 'alpinejs'
+import { buildCurvePath } from '../../lib/bezier.js'
+
+Alpine.data('curveEditor', () => ({
+  _draggingIndex: null,
+
+  get curvePath() {
+    return buildCurvePath(this.$store.editor.curve.points, 256, 256)
+  },
+
+  getSvgPoint(clientX, clientY) {
+    const svg = this.$refs.svg
+    const rect = svg.getBoundingClientRect()
+    const x = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width))
+    const y = Math.max(0, Math.min(1, 1 - (clientY - rect.top) / rect.height))
+    return [x, y]
+  },
+
+  findNearestPoint(x, y, threshold = 0.06) {
+    const pts = this.$store.editor.curve.points
+    let best = -1, bestDist = threshold
+    for (let i = 0; i < pts.length; i++) {
+      const d = Math.hypot(pts[i][0] - x, pts[i][1] - y)
+      if (d < bestDist) { bestDist = d; best = i }
+    }
+    return best
+  },
+
+  onMouseDown(e) {
+    const [x, y] = this.getSvgPoint(e.clientX, e.clientY)
+    const nearest = this.findNearestPoint(x, y)
+    if (nearest === -1) {
+      this.addPoint(x, y)
+    }
+    const onMove = (ev) => this.moveActive(ev.clientX, ev.clientY)
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+      this._draggingIndex = null
+      this.$store.editor.pushHistory()
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  },
+
+  onTouchStart(e) {
+    if (e.touches.length !== 1) return
+    const [x, y] = this.getSvgPoint(e.touches[0].clientX, e.touches[0].clientY)
+    const nearest = this.findNearestPoint(x, y)
+    if (nearest === -1) this.addPoint(x, y)
+    const onMove = (ev) => {
+      if (ev.touches.length === 1) this.moveActive(ev.touches[0].clientX, ev.touches[0].clientY)
+    }
+    const onEnd = () => {
+      window.removeEventListener('touchmove', onMove)
+      window.removeEventListener('touchend', onEnd)
+      this._draggingIndex = null
+      this.$store.editor.pushHistory()
+    }
+    window.addEventListener('touchmove', onMove, { passive: true })
+    window.addEventListener('touchend', onEnd)
+  },
+
+  startDragPoint(index, e) {
+    this._draggingIndex = index
+    const onMove = (ev) => this.moveActive(ev.clientX, ev.clientY)
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+      this._draggingIndex = null
+      this.$store.editor.pushHistory()
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  },
+
+  startDragPointTouch(index, e) {
+    this._draggingIndex = index
+    const onMove = (ev) => {
+      if (ev.touches.length === 1) this.moveActive(ev.touches[0].clientX, ev.touches[0].clientY)
+    }
+    const onEnd = () => {
+      window.removeEventListener('touchmove', onMove)
+      window.removeEventListener('touchend', onEnd)
+      this._draggingIndex = null
+      this.$store.editor.pushHistory()
+    }
+    window.addEventListener('touchmove', onMove, { passive: true })
+    window.addEventListener('touchend', onEnd)
+  },
+
+  addPoint(x, y) {
+    const pts = this.$store.editor.curve.points
+    pts.push([x, y])
+    pts.sort((a, b) => a[0] - b[0])
+    this._draggingIndex = pts.findIndex(p => Math.abs(p[0] - x) < 0.001 && Math.abs(p[1] - y) < 0.001)
+  },
+
+  moveActive(clientX, clientY) {
+    if (this._draggingIndex === null) return
+    const pts = this.$store.editor.curve.points
+    const [x, y] = this.getSvgPoint(clientX, clientY)
+    const i = this._draggingIndex
+    // Keep endpoints at x=0 and x=1
+    const newX = (i === 0) ? 0 : (i === pts.length - 1) ? 1 : x
+    pts[i] = [newX, y]
+    // Keep sorted
+    pts.sort((a, b) => a[0] - b[0])
+    // Find new index after sort
+    this._draggingIndex = pts.findIndex(p => p[0] === newX && Math.abs(p[1] - y) < 0.001)
+  },
+
+  resetCurve() {
+    this.$store.editor.curve.points = [[0,0],[0.25,0.25],[0.75,0.75],[1,1]]
+    this.$store.editor.curve.channel = 'rgb'
+    this.$store.editor.pushHistory()
+    window.dispatchEvent(new CustomEvent('editor:render'))
+  },
+}))
+</script>
