@@ -46,8 +46,14 @@ import Slider from '../Slider.astro'
                   :value="$store.editor.color.hsl[ch][prop]"
                   @input="$store.editor.color.hsl[ch][prop] = parseFloat($event.target.value)"
                   @change="$store.editor.pushHistory()"
+                  @touchmove.prevent="
+                    const r = $el.getBoundingClientRect();
+                    const p = Math.max(0, Math.min(1, ($event.touches[0].clientX - r.left) / r.width));
+                    $store.editor.color.hsl[ch][prop] = parseFloat((-1 + p * 2).toFixed(2));
+                  "
+                  @touchend="$store.editor.pushHistory()"
                   @dblclick.prevent="$store.editor.color.hsl[ch][prop] = 0; $store.editor.pushHistory(); window.dispatchEvent(new CustomEvent('editor:render'))"
-                  class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  class="absolute inset-0 w-full h-full opacity-0 cursor-pointer touch-none"
                 />
               </div>
             </div>
