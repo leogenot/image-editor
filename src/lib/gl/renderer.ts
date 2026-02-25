@@ -17,6 +17,7 @@ export class Renderer {
   private curveLUT_g!: WebGLTexture
   private curveLUT_b!: WebGLTexture
   private _isFloat = false
+  private _floatLinear = false
   private _lastState: RenderState | null = null
   private _fboSize = { w: 0, h: 0 }
   private _u: Record<string, WebGLUniformLocation | null> = {}
@@ -31,6 +32,9 @@ export class Renderer {
     })
     if (!gl) throw new Error('WebGL2 not supported')
     this.gl = gl
+    // Enable linear filtering for float textures (required for RGBA32F + LINEAR)
+    this._floatLinear = gl.getExtension('OES_texture_float_linear') !== null
+    gl.getExtension('EXT_color_buffer_float')
     this._init()
   }
 
@@ -223,6 +227,11 @@ export class Renderer {
     gl.bindTexture(gl.TEXTURE_2D, this.texture)
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, gl.FLOAT, pixels)
     this._setTexParams()
+    // RGBA32F requires OES_texture_float_linear for LINEAR filtering; fall back to NEAREST
+    if (!this._floatLinear) {
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+    }
     this._isFloat = true
     if (this._lastState) this.render(this._lastState)
   }
