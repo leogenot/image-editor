@@ -61,6 +61,12 @@ const pos = `50 + (${storeKey} / ${range}) * 100`
       :value={storeKey}
       x-model.number={storeKey}
       @change={`$store.editor.pushHistory()`}
+      @touchmove.prevent={`
+        const r = $el.getBoundingClientRect();
+        const p = Math.max(0, Math.min(1, ($event.touches[0].clientX - r.left) / r.width));
+        ${storeKey} = parseFloat((${min} + p * ${range}).toFixed(${decimals}));
+      `}
+      @touchend={`$store.editor.pushHistory()`}
       @dblclick.prevent={`${storeKey} = ${defaultValue}; $store.editor.pushHistory(); window.dispatchEvent(new CustomEvent('editor:render'))`}
     />
   </div>
