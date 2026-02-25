@@ -37,6 +37,7 @@
         x-model.number="$store.editor.crop.angle"
         class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
         @change="$store.editor.pushHistory()"
+        @dblclick.prevent="$store.editor.crop.angle = 0; $store.editor.pushHistory()"
       />
     </div>
   </div>

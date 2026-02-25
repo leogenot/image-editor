@@ -6,6 +6,7 @@ interface Props {
   max?: number
   step?: number
   decimals?: number
+  defaultValue?: number
 }
 const {
   label,
@@ -14,6 +15,7 @@ const {
   max = 1,
   step = 0.01,
   decimals = 2,
+  defaultValue = 0,
 } = Astro.props
 const range = Number(max) - Number(min)
 const pos = `50 + (${storeKey} / ${range}) * 100`
@@ -59,6 +61,7 @@ const pos = `50 + (${storeKey} / ${range}) * 100`
       :value={storeKey}
       x-model.number={storeKey}
       @change={`$store.editor.pushHistory()`}
+      @dblclick.prevent={`${storeKey} = ${defaultValue}; $store.editor.pushHistory(); window.dispatchEvent(new CustomEvent('editor:render'))`}
     />
   </div>
 </div>
