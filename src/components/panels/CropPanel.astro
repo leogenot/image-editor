@@ -25,7 +25,7 @@
       <span class="font-mono text-[10px] text-white tabular-nums"
         x-text="(($store.editor.crop.angle > 0 ? '+' : '') + Number($store.editor.crop.angle).toFixed(1)) + '°'"></span>
     </div>
-    <div class="relative h-11 flex items-center">
+    <div class="relative h-11 flex items-center" x-data="{ _lastTap: 0 }">
       <div class="absolute inset-x-0 top-1/2 -translate-y-1/2 h-px bg-white/[0.12]"></div>
       <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-px h-2 bg-white/20"></div>
       <div
@@ -35,8 +35,15 @@
       <input
         type="range" min="-45" max="45" step="0.5"
         x-model.number="$store.editor.crop.angle"
-        class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+        class="absolute inset-0 w-full h-full opacity-0 cursor-pointer touch-none"
         @change="$store.editor.pushHistory()"
+        @touchmove.prevent="
+          const r = $el.getBoundingClientRect();
+          const p = Math.max(0, Math.min(1, ($event.touches[0].clientX - r.left) / r.width));
+          $store.editor.crop.angle = parseFloat((-45 + p * 90).toFixed(1));
+        "
+        @touchend="$store.editor.pushHistory()"
+        @touchstart="const now = Date.now(); if (now - _lastTap < 300) { $store.editor.crop.angle = 0; $store.editor.pushHistory(); } _lastTap = now;"
         @dblclick.prevent="$store.editor.crop.angle = 0; $store.editor.pushHistory()"
       />
     </div>

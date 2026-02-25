@@ -35,7 +35,7 @@ import Slider from '../Slider.astro'
                 <span class="font-mono text-[9px] text-white tabular-nums"
                   x-text="($store.editor.color.hsl[ch][prop] > 0 ? '+' : '') + Number($store.editor.color.hsl[ch][prop]).toFixed(2)"></span>
               </div>
-              <div class="relative h-9 flex items-center">
+              <div class="relative h-9 flex items-center" x-data="{ _lastTap: 0 }">
                 <div class="absolute inset-x-0 top-1/2 -translate-y-1/2 h-px bg-white/[0.1]"></div>
                 <div
                   class="absolute top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-white rounded-sm pointer-events-none -translate-x-1/2"
@@ -52,6 +52,7 @@ import Slider from '../Slider.astro'
                     $store.editor.color.hsl[ch][prop] = parseFloat((-1 + p * 2).toFixed(2));
                   "
                   @touchend="$store.editor.pushHistory()"
+                  @touchstart="const now = Date.now(); if (now - _lastTap < 300) { $store.editor.color.hsl[ch][prop] = 0; $store.editor.pushHistory(); window.dispatchEvent(new CustomEvent('editor:render')); } _lastTap = now;"
                   @dblclick.prevent="$store.editor.color.hsl[ch][prop] = 0; $store.editor.pushHistory(); window.dispatchEvent(new CustomEvent('editor:render'))"
                   class="absolute inset-0 w-full h-full opacity-0 cursor-pointer touch-none"
                 />

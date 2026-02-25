@@ -30,7 +30,7 @@ const pos = `(${storeKey} - ${min}) / ${range} * 100`
   </div>
 
   <!-- Slider track + thumb container (44px touch target) -->
-  <div class="relative h-11 flex items-center" x-data>
+  <div class="relative h-11 flex items-center" x-data="{ _lastTap: 0 }">
     <!-- Track background -->
     <div class="absolute inset-x-0 top-1/2 -translate-y-1/2 h-px bg-white/[0.12]"></div>
 
@@ -67,6 +67,7 @@ const pos = `(${storeKey} - ${min}) / ${range} * 100`
         ${storeKey} = parseFloat((${min} + p * ${range}).toFixed(${decimals}));
       `}
       @touchend={`$store.editor.pushHistory()`}
+      @touchstart={`const now = Date.now(); if (now - _lastTap < 300) { ${storeKey} = ${defaultValue}; $store.editor.pushHistory(); window.dispatchEvent(new CustomEvent('editor:render')); } _lastTap = now;`}
       @dblclick.prevent={`${storeKey} = ${defaultValue}; $store.editor.pushHistory(); window.dispatchEvent(new CustomEvent('editor:render'))`}
     />
   </div>
