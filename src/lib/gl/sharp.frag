@@ -10,7 +10,9 @@ uniform float u_sharpness;
 uniform float u_noiseReduction;
 
 void main() {
-  vec2 uv = v_texCoord;
+  // FBO texture was rendered with a Y-flip correction in the vertex shader.
+  // Undo that flip here so the second pass reads the correct orientation.
+  vec2 uv = vec2(v_texCoord.x, 1.0 - v_texCoord.y);
   vec4 center = texture(u_texture, uv);
 
   // 3x3 bilateral blur (noise reduction)
