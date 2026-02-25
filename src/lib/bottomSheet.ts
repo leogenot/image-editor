@@ -5,10 +5,16 @@ export function setupBottomSheet(el: HTMLElement): void {
   const EXPANDED_H = Math.min(window.innerHeight * 0.65, 520)
   const SNAP_THRESHOLD = 10 // px — below this delta, treat as a tap
 
-  // Measure the peek height from actual DOM elements (handle + tab bar)
   const handleEl = el.querySelector<HTMLElement>('[data-handle]')
   const tabBarEl = el.querySelector<HTMLElement>('.flex.overflow-x-auto')
-  const PEEK_H = (handleEl?.offsetHeight ?? 28) + (tabBarEl?.offsetHeight ?? 44)
+
+  // py-3 handle (24px pad + 3px bar ≈ 27) + py-3 tab row (≈ 44px) = 71px
+  // offsetHeight returns 0 when display:none, so fall back to computed values
+  const measuredHandle = handleEl?.offsetHeight ?? 0
+  const measuredTabBar = tabBarEl?.offsetHeight ?? 0
+  const PEEK_H = measuredHandle > 0 && measuredTabBar > 0
+    ? measuredHandle + measuredTabBar
+    : 71
 
   const SNAPS = [PEEK_H, COLLAPSED_H, EXPANDED_H]
 
@@ -43,7 +49,7 @@ export function setupBottomSheet(el: HTMLElement): void {
   window.addEventListener('touchmove', (e) => {
     if (!isDragging) return
     const dy = startY - e.touches[0].clientY
-    const newH = Math.max(PEEK_H - 20, Math.min(EXPANDED_H + 40, startH + dy))
+    const newH = Math.max(PEEK_H, Math.min(EXPANDED_H + 40, startH + dy))
     setHeight(newH)
     e.preventDefault()
   }, { passive: false })
