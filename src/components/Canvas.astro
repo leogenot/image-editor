@@ -27,7 +27,8 @@
   import Alpine from 'alpinejs'
   import { Renderer } from '../lib/gl/renderer.js'
   import { setupGestures } from '../lib/gestures.js'
-  import { saveSession } from '../lib/storage.js'
+  import { saveSession, loadLastImage, loadSessions } from '../lib/storage.js'
+  import { decodeRaw } from '../lib/raw/decoder.js'
   import {
     computeHistogramFromBitmap,
     computeHistogramFromRaw,
@@ -80,63 +81,58 @@
         Alpine.store('editor').histogram = computeHistogramFromRaw(pixels)
       })
 
-      // Re-render on store events
+      // Re-render on explicit editor:render events (undo/redo/reset/presets)
       window.addEventListener('editor:render', () => {
         this.renderer?.render(Alpine.store('editor'))
       })
 
-      // Auto-save session (debounced 2s)
+      // Debounced save — called from watches so every slider change is captured
       let _saveTimer = null
-      window.addEventListener('editor:render', () => {
-        if (!Alpine.store('editor').hasImage) return
+      const deferSave = () => {
+        const store = Alpine.store('editor')
+        if (!store.hasImage || store.restoring) return
         clearTimeout(_saveTimer)
         _saveTimer = setTimeout(async () => {
           try {
-            const store = Alpine.store('editor')
-            if (!store.hasImage) return
-            // Take a small preview thumbnail
+            const s = Alpine.store('editor')
+            if (!s.hasImage) return
             const blob = await new Promise(r =>
               this.$refs.canvas.toBlob(r, 'image/jpeg', 0.35),
             )
-            await saveSession(store, blob)
-          } catch (e) {
+            await saveSession(s, blob)
+          } catch {
             // Auto-save failure is non-critical
           }
         }, 2000)
-      })
+      }
 
-      // Watch store edit values — re-render on any change
+      // Watch store edit values — re-render and debounce save on any change
       this.$watch(
         '$store.editor.light',
-        () => {
-          this.renderer?.render(Alpine.store('editor'))
-        },
+        () => { this.renderer?.render(Alpine.store('editor')); deferSave() },
         { deep: true },
       )
 
       this.$watch(
         '$store.editor.color',
-        () => {
-          this.renderer?.render(Alpine.store('editor'))
-        },
+        () => { this.renderer?.render(Alpine.store('editor')); deferSave() },
         { deep: true },
       )
 
       this.$watch(
         '$store.editor.curve',
-        () => {
-          this.renderer?.render(Alpine.store('editor'))
-        },
+        () => { this.renderer?.render(Alpine.store('editor')); deferSave() },
         { deep: true },
       )
 
       this.$watch(
         '$store.editor.detail',
-        () => {
-          this.renderer?.render(Alpine.store('editor'))
-        },
+        () => { this.renderer?.render(Alpine.store('editor')); deferSave() },
         { deep: true },
       )
+
+      // Restore last session on page load
+      this._tryRestoreSession()
 
       // Gesture setup
       const container = this.$el
@@ -189,6 +185,51 @@
         }
         window.addEventListener('touchmove', onMove, { passive: true })
         window.addEventListener('touchend', onEnd, { passive: true })
+      }
+    },
+
+    async _tryRestoreSession() {
+      const store = Alpine.store('editor')
+      let lastImage
+      try {
+        lastImage = await loadLastImage()
+      } catch {
+        return
+      }
+      if (!lastImage?.blob) return
+
+      store.restoring = true
+      try {
+        const sessions = await loadSessions()
+        const edits = sessions.find(s => s.filename === lastImage.filename) ?? sessions[0]
+
+        store.filename = lastImage.filename
+
+        if (lastImage.isRaw) {
+          const { pixels, width, height } = await decodeRaw(lastImage.blob)
+          store.rawPixels = pixels
+          store.width = width
+          store.height = height
+          store.isRaw = true
+          if (edits) store.applyEditState(edits)
+          store.hasImage = true
+          store.pushHistory()
+          window.dispatchEvent(new CustomEvent('editor:loadRaw', { detail: { pixels, width, height } }))
+        } else {
+          const bitmap = await createImageBitmap(lastImage.blob, { colorSpaceConversion: 'none' })
+          store.imageData = bitmap
+          store.width = bitmap.width
+          store.height = bitmap.height
+          store.isRaw = false
+          if (edits) store.applyEditState(edits)
+          store.hasImage = true
+          store.pushHistory()
+          window.dispatchEvent(new CustomEvent('editor:loadImage', { detail: { bitmap } }))
+        }
+      } catch (err) {
+        console.warn('Session restore failed:', err)
+      } finally {
+        store.restoring = false
       }
     },
 

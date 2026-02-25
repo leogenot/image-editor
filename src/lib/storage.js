@@ -2,6 +2,7 @@ import { get, set, del, keys } from 'idb-keyval'
 
 const MAX_SESSIONS = 20
 const PREFIX = 'editor_session_'
+const LAST_IMAGE_KEY = 'editor_last_image'
 
 function serializeEdits(store) {
   return {
@@ -14,14 +15,25 @@ function serializeEdits(store) {
       hsl: JSON.parse(JSON.stringify(store.color.hsl)),
     },
     curve: {
-      points: store.curve.points.map(p => [...p]),
       channel: store.curve.channel,
+      rgb: store.curve.rgb.map(p => [...p]),
+      r:   store.curve.r.map(p => [...p]),
+      g:   store.curve.g.map(p => [...p]),
+      b:   store.curve.b.map(p => [...p]),
     },
     detail: { ...store.detail },
     crop: { ...store.crop },
     filename: store.filename,
     savedAt: Date.now(),
   }
+}
+
+export async function saveLastImage(blob, isRaw, filename) {
+  await set(LAST_IMAGE_KEY, { blob, isRaw, filename })
+}
+
+export async function loadLastImage() {
+  return get(LAST_IMAGE_KEY)
 }
 
 async function blobToBase64(blob) {

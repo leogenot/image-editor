@@ -109,7 +109,7 @@ void main() {
   float L = luma(color);
   color += u_highlights * 0.5 * smoothstep(0.3, 0.8, L);
   color += u_shadows    * 0.3 * (1.0 - smoothstep(0.1, 0.6, L));
-  color += u_whites     * 0.4 * smoothstep(0.7, 1.0, L);
+  color += u_whites     * 0.4 * smoothstep(0.5, 0.9, L);
   color += u_blacks     * 0.2 * (1.0 - smoothstep(0.0, 0.3, L));
   color = max(color, vec3(0.0));
 

@@ -57,6 +57,7 @@ export function createEditorStore(Alpine) {
     activePanel: 'light',
     cropMode: false,
     exportOpen: false,
+    restoring: false,
 
     // History (undo/redo)
     _history: [],
@@ -91,8 +92,7 @@ export function createEditorStore(Alpine) {
       this._historyIndex = this._history.length - 1
     },
 
-    _applySnapshot(snap) {
-      const state = JSON.parse(snap)
+    applyEditState(state) {
       Object.assign(this.light, state.light)
       Object.assign(this.color, {
         temp: state.color.temp,
@@ -112,6 +112,11 @@ export function createEditorStore(Alpine) {
       this.curve.g   = state.curve.g   || defaultPts.map(p=>[...p])
       this.curve.b   = state.curve.b   || defaultPts.map(p=>[...p])
       Object.assign(this.detail, state.detail)
+      if (state.crop) Object.assign(this.crop, state.crop)
+    },
+
+    _applySnapshot(snap) {
+      this.applyEditState(JSON.parse(snap))
       window.dispatchEvent(new CustomEvent('editor:render'))
     },
 

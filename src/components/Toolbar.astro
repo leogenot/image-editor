@@ -228,6 +228,7 @@
   import Alpine from 'alpinejs'
   import { loadStandardImage, isRawFile } from '../lib/imageLoader.js'
   import { decodeRaw } from '../lib/raw/decoder.js'
+  import { saveLastImage } from '../lib/storage.js'
 
   Alpine.data('toolbar', () => ({
     openNewImage() {
@@ -249,6 +250,7 @@
           store.isRaw = true
           store.hasImage = true
           store.pushHistory()
+          saveLastImage(file, true, file.name).catch(() => {})
           window.dispatchEvent(
             new CustomEvent('editor:loadRaw', {
               detail: { pixels, width, height },
@@ -262,6 +264,7 @@
           store.isRaw = false
           store.hasImage = true
           store.pushHistory()
+          saveLastImage(file, false, file.name).catch(() => {})
           window.dispatchEvent(
             new CustomEvent('editor:loadImage', { detail: { bitmap } }),
           )

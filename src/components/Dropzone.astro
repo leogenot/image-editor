@@ -72,12 +72,25 @@
       <p class="font-mono text-[10px] text-white/50 uppercase tracking-[0.15em]">Decoding RAW...</p>
     </div>
   </div>
+
+  <!-- Restore overlay (shown on page load while restoring session) -->
+  <div
+    class="absolute inset-0 flex items-center justify-center bg-black z-20"
+    x-show="$store.editor.restoring"
+    x-cloak
+  >
+    <div class="flex flex-col items-center gap-3">
+      <div class="w-5 h-5 border border-white/30 border-t-white rounded-full animate-spin"></div>
+      <p class="font-mono text-[10px] text-white/50 uppercase tracking-[0.15em]">Restoring session...</p>
+    </div>
+  </div>
 </div>
 
 <script>
 import Alpine from 'alpinejs'
 import { loadStandardImage, isRawFile } from '../lib/imageLoader.js'
 import { decodeRaw } from '../lib/raw/decoder.js'
+import { saveLastImage } from '../lib/storage.js'
 
 Alpine.data('dropzone', () => ({
   dragging: false,
@@ -110,6 +123,7 @@ Alpine.data('dropzone', () => ({
         store.isRaw = true
         store.hasImage = true
         store.pushHistory()
+        saveLastImage(file, true, file.name).catch(() => {})
         window.dispatchEvent(new CustomEvent('editor:loadRaw', {
           detail: { pixels, width, height }
         }))
@@ -121,6 +135,7 @@ Alpine.data('dropzone', () => ({
         store.isRaw = false
         store.hasImage = true
         store.pushHistory()
+        saveLastImage(file, false, file.name).catch(() => {})
         window.dispatchEvent(new CustomEvent('editor:loadImage', {
           detail: { bitmap }
         }))

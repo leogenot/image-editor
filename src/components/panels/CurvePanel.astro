@@ -27,27 +27,13 @@
       @mousedown="onMouseDown($event)"
       @touchstart.prevent="onTouchStart($event)"
     >
-      <!-- Histogram background -->
-      <template x-if="$store.editor.histogram">
-        <g>
-          <template x-if="$store.editor.curve.channel === 'rgb'">
-            <g>
-              <path :d="buildHistPath($store.editor.histogram.r)" fill="#ef4444" fill-opacity="0.18" />
-              <path :d="buildHistPath($store.editor.histogram.g)" fill="#22c55e" fill-opacity="0.18" />
-              <path :d="buildHistPath($store.editor.histogram.b)" fill="#3b82f6" fill-opacity="0.18" />
-            </g>
-          </template>
-          <template x-if="$store.editor.curve.channel === 'r'">
-            <path :d="buildHistPath($store.editor.histogram.r)" fill="#ef4444" fill-opacity="0.25" />
-          </template>
-          <template x-if="$store.editor.curve.channel === 'g'">
-            <path :d="buildHistPath($store.editor.histogram.g)" fill="#22c55e" fill-opacity="0.25" />
-          </template>
-          <template x-if="$store.editor.curve.channel === 'b'">
-            <path :d="buildHistPath($store.editor.histogram.b)" fill="#3b82f6" fill-opacity="0.25" />
-          </template>
-        </g>
-      </template>
+      <!-- Histogram background — x-show on individual paths (x-if breaks inside SVG) -->
+      <path x-show="$store.editor.histogram && $store.editor.curve.channel === 'rgb'" :d="buildHistPath($store.editor.histogram?.r)" fill="#ef4444" fill-opacity="0.18" />
+      <path x-show="$store.editor.histogram && $store.editor.curve.channel === 'rgb'" :d="buildHistPath($store.editor.histogram?.g)" fill="#22c55e" fill-opacity="0.18" />
+      <path x-show="$store.editor.histogram && $store.editor.curve.channel === 'rgb'" :d="buildHistPath($store.editor.histogram?.b)" fill="#3b82f6" fill-opacity="0.18" />
+      <path x-show="$store.editor.histogram && $store.editor.curve.channel === 'r'" :d="buildHistPath($store.editor.histogram?.r)" fill="#ef4444" fill-opacity="0.25" />
+      <path x-show="$store.editor.histogram && $store.editor.curve.channel === 'g'" :d="buildHistPath($store.editor.histogram?.g)" fill="#22c55e" fill-opacity="0.25" />
+      <path x-show="$store.editor.histogram && $store.editor.curve.channel === 'b'" :d="buildHistPath($store.editor.histogram?.b)" fill="#3b82f6" fill-opacity="0.25" />
 
       <!-- Grid -->
       <line x1="64"  y1="0" x2="64"  y2="256" stroke="white" stroke-opacity="0.04" />
@@ -59,16 +45,10 @@
       <!-- Diagonal reference -->
       <line x1="0" y1="256" x2="256" y2="0" stroke="white" stroke-opacity="0.06" stroke-dasharray="4 4" />
 
-      <!-- Inactive channel curves (ghost hints) -->
-      <template x-if="$store.editor.curve.channel !== 'r'">
-        <path :d="buildPath('r')" fill="none" stroke="#ef4444" stroke-opacity="0.2" stroke-width="1" stroke-linecap="round" />
-      </template>
-      <template x-if="$store.editor.curve.channel !== 'g'">
-        <path :d="buildPath('g')" fill="none" stroke="#22c55e" stroke-opacity="0.2" stroke-width="1" stroke-linecap="round" />
-      </template>
-      <template x-if="$store.editor.curve.channel !== 'b'">
-        <path :d="buildPath('b')" fill="none" stroke="#3b82f6" stroke-opacity="0.2" stroke-width="1" stroke-linecap="round" />
-      </template>
+      <!-- Inactive channel curves (ghost hints) — x-show instead of x-if -->
+      <path x-show="$store.editor.curve.channel !== 'r'" :d="buildPath('r')" fill="none" stroke="#ef4444" stroke-opacity="0.2" stroke-width="1" stroke-linecap="round" />
+      <path x-show="$store.editor.curve.channel !== 'g'" :d="buildPath('g')" fill="none" stroke="#22c55e" stroke-opacity="0.2" stroke-width="1" stroke-linecap="round" />
+      <path x-show="$store.editor.curve.channel !== 'b'" :d="buildPath('b')" fill="none" stroke="#3b82f6" stroke-opacity="0.2" stroke-width="1" stroke-linecap="round" />
 
       <!-- Active curve -->
       <path
@@ -81,29 +61,8 @@
         stroke-linejoin="round"
       />
 
-      <!-- Control points -->
-      <template x-for="(pt, i) in currentPoints" :key="i">
-        <g>
-          <circle
-            :cx="pt[0] * 256"
-            :cy="(1 - pt[1]) * 256"
-            r="12"
-            fill="transparent"
-            class="cursor-grab active:cursor-grabbing"
-            @mousedown.stop="startDragPoint(i, $event)"
-            @touchstart.stop.prevent="startDragPointTouch(i, $event)"
-          />
-          <circle
-            :cx="pt[0] * 256"
-            :cy="(1 - pt[1]) * 256"
-            r="4"
-            fill="#000"
-            :stroke="channelColor"
-            stroke-width="1.5"
-            class="pointer-events-none"
-          />
-        </g>
-      </template>
+      <!-- Control points — x-html on <g> avoids x-for inside SVG (template namespace bug) -->
+      <g x-html="renderPointsSvg"></g>
     </svg>
   </div>
 
@@ -144,6 +103,15 @@ Alpine.data('curveEditor', () => ({
     return 'white'
   },
 
+  // Generates SVG circle markup for control points.
+  // x-html on a <g> sets innerHTML in SVG context, so circles parse correctly.
+  get renderPointsSvg() {
+    const color = this.channelColor
+    return this.currentPoints.map(pt =>
+      `<circle cx="${(pt[0] * 256).toFixed(2)}" cy="${((1 - pt[1]) * 256).toFixed(2)}" r="4" fill="#000" stroke="${color}" stroke-width="1.5"/>`
+    ).join('')
+  },
+
   buildPath(ch) {
     return buildCurvePath(this.$store.editor.curve[ch], 256, 256)
   },
@@ -171,10 +139,20 @@ Alpine.data('curveEditor', () => ({
     return [x, y]
   },
 
-  // Click on empty SVG space → add point
+  // Unified mouse handler: hit-test first, then add or drag.
+  // Double-click on a point removes it.
   onMouseDown(e) {
     const [x, y] = this.getSvgPoint(e.clientX, e.clientY)
-    this.addPoint(x, y)
+    const idx = this._findNearest(x, y, 0.06)
+    if (e.detail === 2) {
+      if (idx !== -1) this.removePoint(idx)
+      return
+    }
+    if (idx !== -1) {
+      this._draggingIndex = idx
+    } else {
+      this.addPoint(x, y)
+    }
     this._hasDragged = false
     const onMove = (ev) => { this._hasDragged = true; this.moveActive(ev.clientX, ev.clientY) }
     const onUp = () => {
@@ -190,9 +168,12 @@ Alpine.data('curveEditor', () => ({
   onTouchStart(e) {
     if (e.touches.length !== 1) return
     const [x, y] = this.getSvgPoint(e.touches[0].clientX, e.touches[0].clientY)
-    // Only add if not near an existing point (hit areas stop propagation, but touch threshold can miss)
-    const nearest = this._findNearest(x, y)
-    if (nearest === -1) this.addPoint(x, y)
+    const idx = this._findNearest(x, y, 0.08)
+    if (idx !== -1) {
+      this._draggingIndex = idx
+    } else {
+      this.addPoint(x, y)
+    }
     this._hasDragged = false
     const onMove = (ev) => {
       if (ev.touches.length === 1) { this._hasDragged = true; this.moveActive(ev.touches[0].clientX, ev.touches[0].clientY) }
@@ -202,49 +183,6 @@ Alpine.data('curveEditor', () => ({
       window.removeEventListener('touchend', onEnd)
       this._draggingIndex = null
       this.$store.editor.pushHistory()
-    }
-    window.addEventListener('touchmove', onMove, { passive: true })
-    window.addEventListener('touchend', onEnd)
-  },
-
-  // Click on existing point → drag; double-click → remove
-  startDragPoint(index, e) {
-    if (e.detail === 2) {
-      this.removePoint(index)
-      return
-    }
-    this._draggingIndex = index
-    this._hasDragged = false
-    const onMove = (ev) => { this._hasDragged = true; this.moveActive(ev.clientX, ev.clientY) }
-    const onUp = () => {
-      window.removeEventListener('mousemove', onMove)
-      window.removeEventListener('mouseup', onUp)
-      if (this._hasDragged) {
-        this._draggingIndex = null
-        this.$store.editor.pushHistory()
-      } else {
-        this._draggingIndex = null
-      }
-    }
-    window.addEventListener('mousemove', onMove)
-    window.addEventListener('mouseup', onUp)
-  },
-
-  startDragPointTouch(index, e) {
-    this._draggingIndex = index
-    this._hasDragged = false
-    const onMove = (ev) => {
-      if (ev.touches.length === 1) { this._hasDragged = true; this.moveActive(ev.touches[0].clientX, ev.touches[0].clientY) }
-    }
-    const onEnd = () => {
-      window.removeEventListener('touchmove', onMove)
-      window.removeEventListener('touchend', onEnd)
-      if (this._hasDragged) {
-        this._draggingIndex = null
-        this.$store.editor.pushHistory()
-      } else {
-        this._draggingIndex = null
-      }
     }
     window.addEventListener('touchmove', onMove, { passive: true })
     window.addEventListener('touchend', onEnd)
@@ -260,7 +198,7 @@ Alpine.data('curveEditor', () => ({
   removePoint(index) {
     const pts = this.currentPoints
     if (index === 0 || index === pts.length - 1) return  // protect endpoints
-    this._draggingIndex = null  // cancel any pending drag
+    this._draggingIndex = null
     pts.splice(index, 1)
     this.$store.editor.pushHistory()
   },
