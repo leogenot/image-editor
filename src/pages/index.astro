@@ -1,5 +1,15 @@
 ---
 import '../styles/global.css'
+import Dropzone from '../components/Dropzone.astro'
+import Canvas from '../components/Canvas.astro'
+import Toolbar from '../components/Toolbar.astro'
+import Panel from '../components/Panel.astro'
+import LightPanel from '../components/panels/LightPanel.astro'
+import ColorPanel from '../components/panels/ColorPanel.astro'
+import CurvePanel from '../components/panels/CurvePanel.astro'
+import DetailPanel from '../components/panels/DetailPanel.astro'
+import CropPanel from '../components/panels/CropPanel.astro'
+import PresetsPanel from '../components/panels/PresetsPanel.astro'
 ---
 <!doctype html>
 <html lang="en">
@@ -7,32 +17,29 @@ import '../styles/global.css'
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#000000" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>EDITOR</title>
   </head>
   <body
-    class="w-full h-full bg-black p-4"
+    class="w-screen h-[100dvh] overflow-hidden bg-black relative"
     x-data
-    @keydown.meta.z.window="$store.editor.undo()"
-    @keydown.ctrl.z.window="$store.editor.undo()"
-    @keydown.meta.shift.z.window="$store.editor.redo()"
-    @keydown.ctrl.y.window="$store.editor.redo()"
+    @keydown.meta.z.window.prevent="$store.editor.undo()"
+    @keydown.ctrl.z.window.prevent="$store.editor.undo()"
+    @keydown.meta.shift.z.window.prevent="$store.editor.redo()"
+    @keydown.ctrl.y.window.prevent="$store.editor.redo()"
   >
-    <p
-      class="text-white text-xs uppercase tracking-widest"
-      style="font-family: 'Space Mono', monospace"
-      x-text="'PANEL: ' + $store.editor.activePanel + ' | EXPOSURE: ' + $store.editor.light.exposure"
-    ></p>
-    <button
-      class="mt-4 px-4 py-2 bg-white text-black text-xs font-mono uppercase tracking-widest rounded-full"
-      @click="$store.editor.light.exposure += 0.5; $store.editor.pushHistory()"
-    >+0.5 EXP</button>
-    <button
-      class="mt-4 ml-2 px-4 py-2 border border-white/30 text-white text-xs font-mono uppercase tracking-widest rounded-full"
-      @click="$store.editor.undo()"
-    >UNDO</button>
-    <button
-      class="mt-4 ml-2 px-4 py-2 border border-white/30 text-white text-xs font-mono uppercase tracking-widest rounded-full"
-      @click="$store.editor.redo()"
-    >REDO</button>
+    <Dropzone />
+    <Canvas />
+    <Toolbar />
+    <Panel>
+      <LightPanel   slot="light"   />
+      <ColorPanel   slot="color"   />
+      <CurvePanel   slot="curve"   />
+      <DetailPanel  slot="detail"  />
+      <CropPanel    slot="crop"    />
+      <PresetsPanel slot="presets" />
+    </Panel>
   </body>
 </html>

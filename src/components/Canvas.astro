@@ -26,6 +26,7 @@
 import Alpine from 'alpinejs'
 import { Renderer } from '../lib/gl/renderer.js'
 import { setupGestures } from '../lib/gestures.js'
+import { saveSession } from '../lib/storage.js'
 
 Alpine.data('canvasView', () => ({
   zoom: 1,
@@ -73,6 +74,24 @@ Alpine.data('canvasView', () => ({
     // Re-render on store events
     window.addEventListener('editor:render', () => {
       this.renderer?.render(Alpine.store('editor'))
+    })
+
+    // Auto-save session (debounced 2s)
+    let _saveTimer = null
+    window.addEventListener('editor:render', () => {
+      if (!Alpine.store('editor').hasImage) return
+      clearTimeout(_saveTimer)
+      _saveTimer = setTimeout(async () => {
+        try {
+          const store = Alpine.store('editor')
+          if (!store.hasImage) return
+          // Take a small preview thumbnail
+          const blob = await new Promise(r => this.$refs.canvas.toBlob(r, 'image/jpeg', 0.35))
+          await saveSession(store, blob)
+        } catch (e) {
+          // Auto-save failure is non-critical
+        }
+      }, 2000)
     })
 
     // Watch store edit values — re-render on any change
