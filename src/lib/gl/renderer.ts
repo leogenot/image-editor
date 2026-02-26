@@ -103,6 +103,7 @@ export class Renderer {
       'u_temp', 'u_tint', 'u_vibrance', 'u_saturation', 'u_hsl',
       'u_angle', 'u_aspectRatio',
       'u_grain', 'u_grainSize', 'u_borderThickness', 'u_borderColor',
+      'u_cropX', 'u_cropY', 'u_cropW', 'u_cropH',
     ]) {
       this._u[name] = gl.getUniformLocation(this.program, name)
     }
@@ -313,6 +314,10 @@ export class Renderer {
     const angleDeg = crop.angle ?? 0
     gl.uniform1f(u['u_angle'], (angleDeg * Math.PI) / 180)
     gl.uniform1f(u['u_aspectRatio'], gl.canvas.width / gl.canvas.height)
+    gl.uniform1f(u['u_cropX'], crop.x ?? 0)
+    gl.uniform1f(u['u_cropY'], crop.y ?? 0)
+    gl.uniform1f(u['u_cropW'], crop.w ?? 1)
+    gl.uniform1f(u['u_cropH'], crop.h ?? 1)
 
     const detail = state.detail ?? {}
     gl.uniform1f(u['u_grain'],      detail.grain      ?? 0)

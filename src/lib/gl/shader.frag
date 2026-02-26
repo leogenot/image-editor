@@ -31,8 +31,12 @@ uniform float u_aspectRatio; // canvas width / height
 
 uniform float u_grain;
 uniform float u_grainSize;     // 1.0 to 8.0 — higher = coarser
-uniform float u_borderThickness; // 0 to 0.15, fraction of shorter image dimension
+uniform float u_borderThickness; // 0 to 0.15, fraction of shorter crop dimension
 uniform vec3  u_borderColor;
+uniform float u_cropX;
+uniform float u_cropY;
+uniform float u_cropW;
+uniform float u_cropH;
 
 float grainHash(vec2 st) {
   return fract(sin(dot(st, vec2(12.9898, 78.233))) * 43758.5453);
@@ -105,19 +109,32 @@ float hueMask(float h, float center, float width) {
 void main() {
   vec2 tc = v_texCoord;
 
-  // Border: fill edges with border color, remap inner UV to scale image down
+  // Border: drawn relative to the crop region, equal pixel width on all sides
   if (u_borderThickness > 0.001) {
-    float ar = u_aspectRatio;
-    // Compute equal-pixel-width border thickness in UV space
-    float tx = ar >= 1.0 ? u_borderThickness / ar : u_borderThickness;
-    float ty = ar >= 1.0 ? u_borderThickness : u_borderThickness * ar;
-    if (tc.x < tx || tc.x > 1.0 - tx || tc.y < ty || tc.y > 1.0 - ty) {
-      outColor = vec4(u_borderColor, 1.0);
-      return;
+    // Convert fragment UV to crop-relative space [0, 1]
+    float relX = (tc.x - u_cropX) / u_cropW;
+    float relY = (tc.y - u_cropY) / u_cropH;
+
+    // Only apply border logic within the crop region
+    if (relX >= 0.0 && relX <= 1.0 && relY >= 0.0 && relY <= 1.0) {
+      // Pixel aspect ratio of the crop region
+      float cropAr = (u_cropW / u_cropH) * u_aspectRatio;
+
+      // Equal-pixel-width border in crop-relative UV
+      float tx = cropAr >= 1.0 ? u_borderThickness / cropAr : u_borderThickness;
+      float ty = cropAr >= 1.0 ? u_borderThickness : u_borderThickness * cropAr;
+
+      if (relX < tx || relX > 1.0 - tx || relY < ty || relY > 1.0 - ty) {
+        outColor = vec4(u_borderColor, 1.0);
+        return;
+      }
+
+      // Remap to scale the crop content down inside the border
+      float innerRelX = (relX - tx) / (1.0 - 2.0 * tx);
+      float innerRelY = (relY - ty) / (1.0 - 2.0 * ty);
+      tc.x = u_cropX + innerRelX * u_cropW;
+      tc.y = u_cropY + innerRelY * u_cropH;
     }
-    // Remap UV so image fills the inner region (scales image down)
-    tc.x = (tc.x - tx) / (1.0 - 2.0 * tx);
-    tc.y = (tc.y - ty) / (1.0 - 2.0 * ty);
   }
 
   // Straighten rotation — rotate UV around image center
