@@ -2,8 +2,6 @@
 
 A mobile-first, browser-based photo editor with Lightroom-grade editing capabilities. Fully client-side — no server, no uploads, no accounts. Your images never leave your device.
 
-Designed with an industrial monochrome glassmorphism aesthetic inspired by Teenage Engineering hardware.
-
 ---
 
 ## Features
@@ -64,6 +62,8 @@ An interactive Catmull-Rom spline editor with per-channel control:
 |---|---|---|
 | Sharpness | 0 to 1 | Unsharp mask (USM) in a second GPU pass |
 | Noise Reduction | 0 to 1 | 3×3 bilateral blur preserving edges |
+| Grain | 0 to 1 |
+| Grain size | 0 to 1 |
 
 Detail processing uses a dedicated second fragment shader pass via a framebuffer object (FBO). The second pass is skipped entirely when both values are zero.
 
@@ -72,6 +72,7 @@ Detail processing uses a dedicated second fragment shader pass via a framebuffer
 - **Aspect ratio presets**: Free, 1:1, 4:3, 16:9, 3:2, 9:16
 - **Straighten**: ±45° rotation slider applied in the GPU vertex shader (UV rotation around image centre). Double-tap resets to 0°
 - Crop region is applied correctly at export time by blitting the sub-rect to a 2D canvas
+- **Framing options** : Put a frame around your image and choos it's color and thickness
 
 #### Presets
 
@@ -117,7 +118,7 @@ RAW files are loaded as `RGBA32F` float textures, bypassing the sRGB decode step
 
 ### Undo / Redo
 
-- 50-step undo history stored as JSON snapshots of the full edit state
+- 50-step undo history stored as JSON snapshots of the full edit state using IndexedDB Api
 - **Keyboard**: `Cmd/Ctrl+Z` to undo, `Cmd/Ctrl+Shift+Z` or `Ctrl+Y` to redo
 - **Toolbar buttons**: Undo and Redo icons in the floating top bar
 - History is committed on slider `@change` (release), not `@input` (drag), so live-preview drags don't flood the stack
@@ -182,7 +183,7 @@ Requires Node.js 18+.
 - **WebGL2** is required (supported in all modern browsers)
 - `OES_texture_float_linear` is used when available for smoother RAW rendering; falls back to nearest-neighbour filtering if absent
 - `EXT_color_buffer_float` is enabled for float framebuffer support
-- Designed and tested on Chrome, Safari (iOS + macOS), and Firefox
+- Designed and tested on Chrome, Safari (iOS + macOS)
 
 ---
 
