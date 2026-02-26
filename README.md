@@ -1,4 +1,4 @@
-# EDITOR
+# DarkRoom | Image Editor
 
 A mobile-first, browser-based photo editor with Lightroom-grade editing capabilities. Fully client-side — no server, no uploads, no accounts. Your images never leave your device.
 
