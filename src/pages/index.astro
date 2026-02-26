@@ -11,6 +11,15 @@ import DetailPanel from '../components/panels/DetailPanel.astro'
 import CropPanel from '../components/panels/CropPanel.astro'
 import FramePanel from '../components/panels/FramePanel.astro'
 import PresetsPanel from '../components/panels/PresetsPanel.astro'
+
+// SEO Variables
+const siteTitle = 'DarkRoom | Image Editor'
+const siteDescription =
+  'Professional-grade photo editing directly in your browser. Adjust light, color, curves, apply custom presets, and frame your photos instantly with DarkRoom. No installation required.'
+const siteKeywords =
+  'online image editor, photo editor, color grading, photo filters, curves adjustment, crop photo, browser-based photo editor, free photo editing'
+const siteUrl = 'https://leogenot.github.io/editor'
+// const siteImage = `${siteUrl}/og-image.jpg` // Replace with an actual 1200x630px promo image
 ---
 
 <!doctype html>
@@ -21,6 +30,27 @@ import PresetsPanel from '../components/panels/PresetsPanel.astro'
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
+
+    <title>{siteTitle}</title>
+    <meta name="title" content={siteTitle} />
+    <meta name="description" content={siteDescription} />
+    <meta name="keywords" content={siteKeywords} />
+    <meta name="author" content="DarkRoom" />
+
+    <link rel="canonical" href={siteUrl} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={siteUrl} />
+    <meta property="og:title" content={siteTitle} />
+    <meta property="og:description" content={siteDescription} />
+    <meta property="og:image" content={siteImage} />
+
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content={siteUrl} />
+    <meta property="twitter:title" content={siteTitle} />
+    <meta property="twitter:description" content={siteDescription} />
+    <meta property="twitter:image" content={siteImage} />
+
     <meta name="theme-color" content="#000000" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -28,7 +58,9 @@ import PresetsPanel from '../components/panels/PresetsPanel.astro'
       name="apple-mobile-web-app-status-bar-style"
       content="black-translucent"
     />
-    <title>EDITOR</title>
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   </head>
   <body
     class="w-screen h-dvh overflow-hidden bg-black relative"
