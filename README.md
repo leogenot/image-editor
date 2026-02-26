@@ -1,6 +1,6 @@
 # DarkRoom | Image Editor
 
-A mobile-first, browser-based photo editor with Lightroom-grade editing capabilities. Fully client-side — no server, no uploads, no accounts. Your images never leave your device.
+A mobile-first, browser-based photo editor with Lightroom-grade editing capabilities. Fully client-side — no server, no uploads, no accounts. Your images never leave your device. Fully vibe coded using Claude Sonnet 4.6 (Testing limits, and I must say that I am really impressed).
 
 ---
 
