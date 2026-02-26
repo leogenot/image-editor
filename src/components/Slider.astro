@@ -1,7 +1,7 @@
 ---
 interface Props {
   label: string
-  storeKey: string   // Alpine.js expression e.g. "$store.editor.light.exposure"
+  storeKey: string // Alpine.js expression e.g. "$store.editor.light.exposure"
   min?: number
   max?: number
   step?: number
@@ -20,9 +20,12 @@ const {
 const range = Number(max) - Number(min)
 const pos = `(${storeKey} - ${min}) / ${range} * 100`
 ---
-<div class="py-2.5 border-b border-white/[0.04] last:border-0">
+
+<div class="py-2.5 border-b border-white/4 last:border-0">
   <div class="flex justify-between items-baseline mb-2">
-    <span class="font-mono text-[9px] uppercase tracking-[0.15em] text-white/40">{label}</span>
+    <span class="font-mono text-[9px] uppercase tracking-[0.15em] text-white/40"
+      >{label}</span
+    >
     <span
       class="font-mono text-[10px] text-white tabular-nums"
       x-text={`(${storeKey} > 0 ? '+' : '') + Number(${storeKey}).toFixed(${decimals})`}
@@ -32,7 +35,8 @@ const pos = `(${storeKey} - ${min}) / ${range} * 100`
   <!-- Slider track + thumb container (44px touch target) -->
   <div class="relative h-11 flex items-center" x-data="{ _lastTap: 0 }">
     <!-- Track background -->
-    <div class="absolute inset-x-0 top-1/2 -translate-y-1/2 h-px bg-white/[0.12]"></div>
+    <div class="absolute inset-x-0 top-1/2 -translate-y-1/2 h-px bg-white/12">
+    </div>
 
     <!-- Filled track portion -->
     <!-- Bipolar (centered): fills from center toward thumb -->
@@ -40,16 +44,21 @@ const pos = `(${storeKey} - ${min}) / ${range} * 100`
     <div
       class="absolute top-1/2 -translate-y-1/2 h-px bg-white/70"
       :style={`\`left: \${Math.min(50, ${pos})}%;right: \${100 - Math.max(50, ${pos})}%;\``}
-    ></div>
+    >
+    </div>
 
     <!-- Center tick mark -->
-    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-px h-2 bg-white/20"></div>
+    <div
+      class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-px h-2 bg-white/20"
+    >
+    </div>
 
     <!-- Custom thumb -->
     <div
       class="absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-white rounded-sm pointer-events-none -translate-x-1/2"
       :style={`\`left: \${${pos}}%\``}
-    ></div>
+    >
+    </div>
 
     <!-- Actual range input (invisible, full-size touch target) -->
     <input

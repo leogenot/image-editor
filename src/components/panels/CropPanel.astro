@@ -1,9 +1,15 @@
 ---
+
 ---
+
 <div x-data class="flex flex-col gap-4 pt-2">
   <!-- Aspect ratio -->
   <div>
-    <p class="font-mono text-[9px] text-white/25 uppercase tracking-[0.15em] mb-2">ASPECT RATIO</p>
+    <p
+      class="font-mono text-[9px] text-white/25 uppercase tracking-[0.15em] mb-2"
+    >
+      ASPECT RATIO
+    </p>
     <div class="grid grid-cols-3 gap-1.5">
       <template x-for="r in ['FREE','1:1','4:3','16:9','3:2','9:16']" :key="r">
         <button
@@ -12,8 +18,7 @@
             ? 'border-white bg-white text-black'
             : 'border-white/10 text-white/35 hover:border-white/30 hover:text-white/60'"
           @click="$store.editor.crop.ratio = r.toLowerCase()"
-          x-text="r"
-        ></button>
+          x-text="r"></button>
       </template>
     </div>
   </div>
@@ -21,19 +26,31 @@
   <!-- Straighten -->
   <div>
     <div class="flex justify-between items-baseline mb-2">
-      <p class="font-mono text-[9px] text-white/25 uppercase tracking-[0.15em]">STRAIGHTEN</p>
-      <span class="font-mono text-[10px] text-white tabular-nums"
-        x-text="(($store.editor.crop.angle > 0 ? '+' : '') + Number($store.editor.crop.angle).toFixed(1)) + '°'"></span>
+      <p class="font-mono text-[9px] text-white/25 uppercase tracking-[0.15em]">
+        STRAIGHTEN
+      </p>
+      <span
+        class="font-mono text-[10px] text-white tabular-nums"
+        x-text="(($store.editor.crop.angle > 0 ? '+' : '') + Number($store.editor.crop.angle).toFixed(1)) + '°'"
+      ></span>
     </div>
     <div class="relative h-11 flex items-center" x-data="{ _lastTap: 0 }">
-      <div class="absolute inset-x-0 top-1/2 -translate-y-1/2 h-px bg-white/[0.12]"></div>
-      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-px h-2 bg-white/20"></div>
+      <div class="absolute inset-x-0 top-1/2 -translate-y-1/2 h-px bg-white/12">
+      </div>
+      <div
+        class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-px h-2 bg-white/20"
+      >
+      </div>
       <div
         class="absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-white rounded-sm pointer-events-none -translate-x-1/2"
         :style="`left: ${50 + ($store.editor.crop.angle / 90) * 100}%`"
-      ></div>
+      >
+      </div>
       <input
-        type="range" min="-45" max="45" step="0.5"
+        type="range"
+        min="-45"
+        max="45"
+        step="0.5"
         x-model.number="$store.editor.crop.angle"
         class="absolute inset-0 w-full h-full opacity-0 cursor-pointer touch-none"
         @input="$store.editor.straightening = true"

@@ -12,19 +12,26 @@ import CropPanel from '../components/panels/CropPanel.astro'
 import FramePanel from '../components/panels/FramePanel.astro'
 import PresetsPanel from '../components/panels/PresetsPanel.astro'
 ---
+
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
     <meta name="theme-color" content="#000000" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
     <title>EDITOR</title>
   </head>
   <body
-    class="w-screen h-[100dvh] overflow-hidden bg-black relative"
+    class="w-screen h-dvh overflow-hidden bg-black relative"
     x-data
     @keydown.meta.z.window.prevent="$store.editor.undo()"
     @keydown.ctrl.z.window.prevent="$store.editor.undo()"
@@ -35,12 +42,12 @@ import PresetsPanel from '../components/panels/PresetsPanel.astro'
     <Canvas />
     <Toolbar />
     <Panel>
-      <LightPanel   slot="light"   />
-      <ColorPanel   slot="color"   />
-      <CurvePanel   slot="curve"   />
-      <DetailPanel  slot="detail"  />
-      <CropPanel    slot="crop"    />
-      <FramePanel   slot="frame"   />
+      <LightPanel slot="light" />
+      <ColorPanel slot="color" />
+      <CurvePanel slot="curve" />
+      <DetailPanel slot="detail" />
+      <CropPanel slot="crop" />
+      <FramePanel slot="frame" />
       <PresetsPanel slot="presets" />
     </Panel>
   </body>
