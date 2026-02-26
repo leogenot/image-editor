@@ -9,7 +9,6 @@ export function setupBottomSheet(el: HTMLElement): void {
   const tabBarEl = el.querySelector<HTMLElement>('.flex.overflow-x-auto')
 
   // py-3 handle (24px pad + 3px bar ≈ 27) + py-3 tab row (≈ 44px) = 71px
-  // offsetHeight returns 0 when display:none, so fall back to computed values
   const measuredHandle = handleEl?.offsetHeight ?? 0
   const measuredTabBar = tabBarEl?.offsetHeight ?? 0
   const PEEK_H = measuredHandle > 0 && measuredTabBar > 0
@@ -18,9 +17,12 @@ export function setupBottomSheet(el: HTMLElement): void {
 
   const SNAPS = [PEEK_H, COLLAPSED_H, EXPANDED_H]
 
+  let startX = 0
   let startY = 0
   let startH = 0
-  let isDragging = false
+  let tracking = false   // finger is down on a drag target
+  let dirLocked = false  // direction has been determined
+  let isVertical = false // confirmed vertical (sheet drag) vs horizontal (tab scroll)
 
   function snapNearest(h: number): number {
     return SNAPS.reduce((best, s) => Math.abs(s - h) < Math.abs(best - h) ? s : best)
@@ -39,29 +41,48 @@ export function setupBottomSheet(el: HTMLElement): void {
 
   dragTargets.forEach(target => {
     target.addEventListener('touchstart', (e) => {
+      startX = e.touches[0].clientX
       startY = e.touches[0].clientY
       startH = el.offsetHeight
-      isDragging = true
+      tracking = true
+      dirLocked = false
+      isVertical = false
       el.style.transition = 'none'
     }, { passive: true })
   })
 
   window.addEventListener('touchmove', (e) => {
-    if (!isDragging) return
-    const dy = startY - e.touches[0].clientY
-    const newH = Math.max(PEEK_H, Math.min(EXPANDED_H + 40, startH + dy))
+    if (!tracking) return
+
+    const dx = Math.abs(e.touches[0].clientX - startX)
+    const dy = e.touches[0].clientY - startY
+
+    // Lock direction after the first 4px of movement
+    if (!dirLocked && (Math.abs(dy) > 4 || dx > 4)) {
+      isVertical = Math.abs(dy) > dx
+      dirLocked = true
+    }
+
+    // Horizontal swipe — let the tab bar scroll naturally
+    if (!dirLocked || !isVertical) return
+
+    // Vertical swipe — resize the sheet and block scroll
+    const newH = Math.max(PEEK_H, Math.min(EXPANDED_H + 40, startH - dy))
     setHeight(newH)
     e.preventDefault()
   }, { passive: false })
 
   window.addEventListener('touchend', (e) => {
-    if (!isDragging) return
-    isDragging = false
+    if (!tracking) return
+    tracking = false
+
+    // Horizontal gesture — don't trigger sheet snap
+    if (dirLocked && !isVertical) return
 
     const dy = startY - e.changedTouches[0].clientY
     const h = el.offsetHeight
 
-    // Tap: cycle peek → collapsed → expanded → collapsed
+    // Tap (tiny movement): cycle peek → collapsed → expanded → collapsed
     if (Math.abs(dy) < SNAP_THRESHOLD) {
       const current = snapNearest(h)
       if (current === PEEK_H) setHeight(COLLAPSED_H, true)
@@ -70,7 +91,7 @@ export function setupBottomSheet(el: HTMLElement): void {
       return
     }
 
-    // Drag: snap to nearest of 3 points
+    // Drag: snap to nearest of 3 positions
     setHeight(snapNearest(h), true)
   }, { passive: true })
 }
