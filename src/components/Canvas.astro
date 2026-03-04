@@ -6,7 +6,7 @@
   id="canvas-container"
   class="absolute inset-0 overflow-hidden bg-black"
   x-data="canvasView()"
-  x-show="$store.editor.hasImage"
+  x-show="$store.editor.hasImage && !$store.editor.libraryOpen"
   x-cloak
 >
   <canvas
@@ -146,8 +146,7 @@
   import Alpine from 'alpinejs'
   import { Renderer } from '../lib/gl/renderer.js'
   import { setupGestures } from '../lib/gestures.js'
-  import { saveSession, loadLastImage, loadSessions } from '../lib/storage.js'
-  import { decodeRaw } from '../lib/raw/decoder.js'
+  import { updateProject } from '../lib/storage.js'
   import {
     computeHistogramFromBitmap,
     computeHistogramFromRaw,
@@ -209,16 +208,16 @@
       let _saveTimer = null
       const deferSave = () => {
         const store = Alpine.store('editor')
-        if (!store.hasImage || store.restoring) return
+        if (!store.hasImage || store.restoring || !store.currentProjectId) return
         clearTimeout(_saveTimer)
         _saveTimer = setTimeout(async () => {
           try {
             const s = Alpine.store('editor')
-            if (!s.hasImage) return
+            if (!s.hasImage || !s.currentProjectId) return
             const blob = await new Promise(r =>
               this.$refs.canvas.toBlob(r, 'image/jpeg', 0.35),
             )
-            await saveSession(s, blob)
+            await updateProject(s.currentProjectId, s, blob)
           } catch {
             // Auto-save failure is non-critical
           }
@@ -287,9 +286,6 @@
         this.$nextTick(() => this.fitToScreen())
       })
 
-      // Restore last session on page load
-      this._tryRestoreSession()
-
       // Gesture setup
       const container = this.$el
       setupGestures(container, {
@@ -341,51 +337,6 @@
         }
         window.addEventListener('touchmove', onMove, { passive: true })
         window.addEventListener('touchend', onEnd, { passive: true })
-      }
-    },
-
-    async _tryRestoreSession() {
-      const store = Alpine.store('editor')
-      let lastImage
-      try {
-        lastImage = await loadLastImage()
-      } catch {
-        return
-      }
-      if (!lastImage?.blob) return
-
-      store.restoring = true
-      try {
-        const sessions = await loadSessions()
-        const edits = sessions.find(s => s.filename === lastImage.filename) ?? sessions[0]
-
-        store.filename = lastImage.filename
-
-        if (lastImage.isRaw) {
-          const { pixels, width, height } = await decodeRaw(lastImage.blob)
-          store.rawPixels = pixels
-          store.width = width
-          store.height = height
-          store.isRaw = true
-          if (edits) store.applyEditState(edits)
-          store.hasImage = true
-          store.pushHistory()
-          window.dispatchEvent(new CustomEvent('editor:loadRaw', { detail: { pixels, width, height } }))
-        } else {
-          const bitmap = await createImageBitmap(lastImage.blob, { colorSpaceConversion: 'none' })
-          store.imageData = bitmap
-          store.width = bitmap.width
-          store.height = bitmap.height
-          store.isRaw = false
-          if (edits) store.applyEditState(edits)
-          store.hasImage = true
-          store.pushHistory()
-          window.dispatchEvent(new CustomEvent('editor:loadImage', { detail: { bitmap } }))
-        }
-      } catch (err) {
-        console.warn('Session restore failed:', err)
-      } finally {
-        store.restoring = false
       }
     },
 

@@ -1,6 +1,6 @@
 ---
 import '../styles/global.css'
-import Dropzone from '../components/Dropzone.astro'
+import ImageLibrary from '../components/ImageLibrary.astro'
 import Canvas from '../components/Canvas.astro'
 import Toolbar from '../components/Toolbar.astro'
 import Panel from '../components/Panel.astro'
@@ -70,7 +70,7 @@ const siteUrl = 'https://leogenot.github.io/editor'
     @keydown.meta.shift.z.window.prevent="$store.editor.redo()"
     @keydown.ctrl.y.window.prevent="$store.editor.redo()"
   >
-    <Dropzone />
+    <ImageLibrary />
     <Canvas />
     <Toolbar />
     <Panel>

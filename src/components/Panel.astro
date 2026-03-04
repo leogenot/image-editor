@@ -11,7 +11,7 @@
     bg-black/85 backdrop-blur-xl
   "
   x-data="panelData()"
-  x-show="$store.editor.hasImage"
+  x-show="$store.editor.hasImage && !$store.editor.libraryOpen"
   x-cloak
 >
   <!-- Drag handle (mobile only) -->

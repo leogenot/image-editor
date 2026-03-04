@@ -119,6 +119,8 @@ export interface EditorStore extends EditState {
   exportOpen: boolean
   restoring: boolean
   straightening: boolean
+  libraryOpen: boolean
+  currentProjectId: string | null
 
   // History
   _history: string[]
@@ -132,6 +134,7 @@ export interface EditorStore extends EditState {
   undo(): void
   redo(): void
   resetEdits(): void
+  clearHistory(): void
 }
 
 // Alpine module augmentation — typed $store.editor access

@@ -6,7 +6,7 @@
 <div
   class="absolute top-safe-top top-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-4 py-2 rounded-full border border-white/8 bg-black/50 backdrop-blur-xl"
   x-data="toolbar()"
-  x-show="$store.editor.hasImage"
+  x-show="$store.editor.hasImage && !$store.editor.libraryOpen"
   x-cloak
   style="top: max(16px, env(safe-area-inset-top))"
 >
@@ -78,28 +78,18 @@
 
   <div class="w-px h-3 bg-white/10 mx-1"></div>
 
-  <!-- Open new image -->
+  <!-- Open library -->
   <button
     class="w-6 h-6 flex items-center justify-center text-white/50 hover:text-white transition-colors rounded"
-    @click="openNewImage()"
-    title="Open new image"
-    aria-label="Open new image"
+    @click="$store.editor.libraryOpen = true"
+    title="Image library"
+    aria-label="Image library"
   >
     <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-      <rect
-        x="1"
-        y="3"
-        width="10"
-        height="8"
-        rx="1"
-        stroke="currentColor"
-        stroke-width="1.2"
-        fill="none"></rect>
-      <path
-        d="M4 3 L4 1.5 C4 1.2 4.2 1 4.5 1 L7.5 1 C7.8 1 8 1.2 8 1.5 L8 3"
-        stroke="currentColor"
-        stroke-width="1.2"
-        fill="none"></path>
+      <rect x="1" y="1" width="4" height="4" rx="0.8" stroke="currentColor" stroke-width="1.1" fill="none"/>
+      <rect x="7" y="1" width="4" height="4" rx="0.8" stroke="currentColor" stroke-width="1.1" fill="none"/>
+      <rect x="1" y="7" width="4" height="4" rx="0.8" stroke="currentColor" stroke-width="1.1" fill="none"/>
+      <rect x="7" y="7" width="4" height="4" rx="0.8" stroke="currentColor" stroke-width="1.1" fill="none"/>
     </svg>
   </button>
 
@@ -111,14 +101,6 @@
     EXPORT
   </button>
 
-  <!-- Hidden file input for "open new image" — must be inside x-data="toolbar()" scope -->
-  <input
-    id="toolbar-file-input"
-    type="file"
-    class="hidden"
-    accept="image/*,.cr2,.cr3,.nef,.nrw,.arw,.dng,.orf,.rw2,.pef,.raf,.raw,.rwl"
-    @change="handleNewFile($event)"
-  />
 </div>
 
 <!-- Export dialog -->
@@ -248,56 +230,8 @@
 
 <script>
   import Alpine from 'alpinejs'
-  import { loadStandardImage, isRawFile } from '../lib/imageLoader.js'
-  import { decodeRaw } from '../lib/raw/decoder.js'
-  import { saveLastImage, clearSessions } from '../lib/storage.js'
 
-  Alpine.data('toolbar', () => ({
-    openNewImage() {
-      document.getElementById('toolbar-file-input')?.click()
-    },
-
-    async handleNewFile(event) {
-      const file = event.target.files?.[0]
-      if (!file) return
-      event.target.value = ''
-      const store = Alpine.store('editor')
-      store.clearHistory()
-      clearSessions().catch(() => {})
-      store.filename = file.name
-      try {
-        if (isRawFile(file)) {
-          const { pixels, width, height } = await decodeRaw(file)
-          store.rawPixels = pixels
-          store.width = width
-          store.height = height
-          store.isRaw = true
-          store.hasImage = true
-          store.pushHistory()
-          saveLastImage(file, true, file.name).catch(() => {})
-          window.dispatchEvent(
-            new CustomEvent('editor:loadRaw', {
-              detail: { pixels, width, height },
-            }),
-          )
-        } else {
-          const { bitmap, width, height } = await loadStandardImage(file)
-          store.imageData = bitmap
-          store.width = width
-          store.height = height
-          store.isRaw = false
-          store.hasImage = true
-          store.pushHistory()
-          saveLastImage(file, false, file.name).catch(() => {})
-          window.dispatchEvent(
-            new CustomEvent('editor:loadImage', { detail: { bitmap } }),
-          )
-        }
-      } catch (err) {
-        alert(`Failed to load: ${err.message}`)
-      }
-    },
-  }))
+  Alpine.data('toolbar', () => ({}))
 
   Alpine.data('exportDialog', () => ({
     format: 'image/jpeg',

@@ -1,14 +1,23 @@
 import { get, set, del, keys } from 'idb-keyval'
 import type { EditorStore, SessionData } from '../types'
 
-const MAX_SESSIONS = 20
-const PREFIX = 'editor_session_'
-const LAST_IMAGE_KEY = 'editor_last_image'
+// ── Per-image project storage ────────────────────────────────────────────────
 
-interface LastImageEntry {
-  blob: Blob
-  isRaw: boolean
+const PROJECT_PREFIX = 'editor_project_'
+const MAX_PROJECTS = 30
+
+export interface ProjectMeta {
+  id: string
   filename: string
+  isRaw: boolean
+  preview?: string      // base64 data URL — thumbnail
+  createdAt: number
+  updatedAt: number
+  editState?: SessionData
+}
+
+export interface ProjectData extends ProjectMeta {
+  imageBlob: Blob
 }
 
 function serializeEdits(store: EditorStore): SessionData {
@@ -36,14 +45,6 @@ function serializeEdits(store: EditorStore): SessionData {
   }
 }
 
-export async function saveLastImage(blob: Blob, isRaw: boolean, filename: string): Promise<void> {
-  await set(LAST_IMAGE_KEY, { blob, isRaw, filename })
-}
-
-export async function loadLastImage(): Promise<LastImageEntry | undefined> {
-  return get<LastImageEntry>(LAST_IMAGE_KEY)
-}
-
 async function blobToBase64(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -53,42 +54,66 @@ async function blobToBase64(blob: Blob): Promise<string> {
   })
 }
 
-export async function saveSession(store: EditorStore, previewBlob?: Blob): Promise<void> {
-  const key = `${PREFIX}${Date.now()}_${store.filename}`
-  const data: SessionData & { preview?: string } = serializeEdits(store)
+export async function createProject(imageBlob: Blob, isRaw: boolean, filename: string): Promise<string> {
+  const id = crypto.randomUUID()
+  const now = Date.now()
+  await set(`${PROJECT_PREFIX}${id}`, { id, imageBlob, isRaw, filename, createdAt: now, updatedAt: now } satisfies ProjectData)
+
+  // Prune oldest beyond MAX_PROJECTS
+  const allKeys = (await keys()).filter(k => String(k).startsWith(PROJECT_PREFIX))
+  if (allKeys.length > MAX_PROJECTS) {
+    const metas = await Promise.all(
+      allKeys.map(k => get<Pick<ProjectData, 'id' | 'updatedAt'>>(k as string).then(v => v ? { key: k, updatedAt: v.updatedAt ?? 0 } : null))
+    )
+    const sorted = metas.filter(Boolean).sort((a, b) => a!.updatedAt - b!.updatedAt)
+    await Promise.all(sorted.slice(0, sorted.length - MAX_PROJECTS).map(m => del(m!.key)))
+  }
+
+  return id
+}
+
+export async function updateProject(id: string, store: EditorStore, previewBlob?: Blob): Promise<void> {
+  const key = `${PROJECT_PREFIX}${id}`
+  const existing = await get<ProjectData>(key)
+  if (!existing) return
+
+  const editState = serializeEdits(store)
+  const updated: ProjectData = { ...existing, editState, updatedAt: Date.now() }
+
   if (previewBlob) {
-    try {
-      data.preview = await blobToBase64(previewBlob)
-    } catch {
-      // Preview is optional — don't fail the save
-    }
+    try { updated.preview = await blobToBase64(previewBlob) } catch { /* optional */ }
   }
-  await set(key, data)
 
-  // Prune oldest sessions beyond MAX_SESSIONS
-  const allKeys = (await keys()).filter(k => String(k).startsWith(PREFIX))
-  if (allKeys.length > MAX_SESSIONS) {
-    allKeys.sort()
-    const toDelete = allKeys.slice(0, allKeys.length - MAX_SESSIONS)
-    await Promise.all(toDelete.map(k => del(k)))
-  }
+  await set(key, updated)
 }
 
-export async function loadSessions(): Promise<Array<SessionData & { id: IDBValidKey }>> {
-  const allKeys = (await keys()).filter(k => String(k).startsWith(PREFIX))
-  const sessions = await Promise.all(
-    allKeys.map(k => get<SessionData>(k).then(v => ({ id: k, ...v! })))
+export async function loadProjects(): Promise<ProjectMeta[]> {
+  const allKeys = (await keys()).filter(k => String(k).startsWith(PROJECT_PREFIX))
+  const projects = await Promise.all(
+    allKeys.map(k => get<ProjectData>(k as string).then(v => {
+      if (!v) return null
+      const { imageBlob: _blob, ...meta } = v
+      return meta as ProjectMeta
+    }))
   )
-  return sessions
-    .filter(s => s.savedAt)
-    .sort((a, b) => b.savedAt - a.savedAt)
+  return projects
+    .filter((p): p is ProjectMeta => p !== null)
+    .sort((a, b) => b.updatedAt - a.updatedAt)
 }
 
-export async function deleteSession(id: IDBValidKey): Promise<void> {
-  await del(id)
+export async function loadProject(id: string): Promise<ProjectData | undefined> {
+  return get<ProjectData>(`${PROJECT_PREFIX}${id}`)
 }
 
-export async function clearSessions(): Promise<void> {
-  const allKeys = (await keys()).filter(k => String(k).startsWith(PREFIX))
-  await Promise.all(allKeys.map(k => del(k)))
+export async function deleteProject(id: string): Promise<void> {
+  await del(`${PROJECT_PREFIX}${id}`)
 }
+
+// ── Legacy helpers (kept for backwards compat, no longer actively used) ───────
+
+export async function saveLastImage(): Promise<void> { /* no-op */ }
+export async function loadLastImage(): Promise<undefined> { return undefined }
+export async function saveSession(): Promise<void> { /* no-op */ }
+export async function loadSessions(): Promise<[]> { return [] }
+export async function deleteSession(): Promise<void> { /* no-op */ }
+export async function clearSessions(): Promise<void> { /* no-op */ }

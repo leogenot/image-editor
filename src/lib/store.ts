@@ -71,6 +71,8 @@ export function createEditorStore(Alpine: Alpine): void {
     exportOpen: false,
     restoring: false,
     straightening: false,
+    libraryOpen: false,
+    currentProjectId: null,
 
     // History (undo/redo)
     _history: [],

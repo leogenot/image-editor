@@ -1,0 +1,344 @@
+---
+---
+
+<div
+  id="image-library"
+  class="absolute inset-0 z-10 flex flex-col bg-black"
+  x-data="imageLibrary()"
+  x-show="!$store.editor.hasImage || $store.editor.libraryOpen"
+  @dragover.prevent="dragging = true"
+  @dragleave.document="dragging = false"
+  @drop.prevent="handleDrop($event)"
+>
+  <!-- Drag overlay -->
+  <div
+    class="absolute inset-0 z-50 flex items-center justify-center border-2 border-white/40 bg-white/[0.04] pointer-events-none transition-opacity duration-150"
+    :class="dragging ? 'opacity-100' : 'opacity-0'"
+  >
+    <p class="font-mono text-[10px] text-white/60 uppercase tracking-[0.2em]">Drop to open</p>
+  </div>
+
+  <!-- Header -->
+  <div
+    class="flex-none flex items-center justify-between px-5 border-b border-white/[0.06]"
+    style="padding-top: max(20px, env(safe-area-inset-top)); padding-bottom: 14px;"
+  >
+    <div class="flex items-center gap-3">
+      <!-- Back button (only when library opened while editing) -->
+      <button
+        x-show="$store.editor.hasImage"
+        class="w-7 h-7 flex items-center justify-center text-white/40 hover:text-white transition-colors rounded"
+        @click="$store.editor.libraryOpen = false"
+        aria-label="Back to editor"
+      >
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M9 2L4 7L9 12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <p class="font-mono text-[10px] text-white/50 uppercase tracking-[0.2em]">Library</p>
+    </div>
+
+    <!-- New image button -->
+    <button
+      class="flex items-center gap-2 px-4 py-1.5 bg-white text-black font-mono text-[9px] uppercase tracking-[0.15em] rounded-full hover:bg-white/90 active:bg-white/80 transition-colors"
+      @click="$refs.fileInput.click()"
+    >
+      <svg width="9" height="9" viewBox="0 0 9 9" fill="none">
+        <line x1="4.5" y1="1" x2="4.5" y2="8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        <line x1="1" y1="4.5" x2="8" y2="4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+      </svg>
+      New Image
+    </button>
+  </div>
+
+  <!-- Content -->
+  <div class="flex-1 overflow-y-auto overscroll-contain">
+
+    <!-- Spinner while loading projects list -->
+    <div
+      class="absolute inset-0 flex items-center justify-center"
+      x-show="loading && projects.length === 0"
+      x-cloak
+    >
+      <div class="w-5 h-5 border border-white/20 border-t-white/60 rounded-full animate-spin"></div>
+    </div>
+
+    <!-- Loading overlay while restoring a project -->
+    <div
+      class="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/80 backdrop-blur-sm z-40"
+      x-show="$store.editor.restoring"
+      x-cloak
+    >
+      <div class="w-5 h-5 border border-white/20 border-t-white rounded-full animate-spin"></div>
+      <p class="font-mono text-[10px] text-white/40 uppercase tracking-[0.15em]">Opening...</p>
+    </div>
+
+    <!-- Empty state -->
+    <div
+      class="flex flex-col items-center justify-center gap-6 h-full min-h-64 p-10 text-center"
+      x-show="!loading && projects.length === 0"
+    >
+      <div class="w-14 h-14 flex items-center justify-center border border-white/10 rounded-2xl">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+          <rect x="2" y="5" width="18" height="14" rx="2" stroke="white" stroke-width="1.2" stroke-opacity="0.4"/>
+          <path d="M7 5V3.5C7 3.2 7.2 3 7.5 3H14.5C14.8 3 15 3.2 15 3.5V5" stroke="white" stroke-width="1.2" stroke-opacity="0.4"/>
+          <line x1="11" y1="9" x2="11" y2="15" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-opacity="0.4"/>
+          <line x1="8" y1="12" x2="14" y2="12" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-opacity="0.4"/>
+        </svg>
+      </div>
+      <div class="space-y-1.5">
+        <p class="font-mono text-[11px] text-white/60 uppercase tracking-[0.15em]">No images yet</p>
+        <p class="font-mono text-[10px] text-white/25 uppercase tracking-[0.1em]">Open an image to get started</p>
+      </div>
+      <button
+        class="px-6 py-2.5 bg-white text-black font-mono text-[10px] uppercase tracking-[0.15em] rounded-full hover:bg-white/90 active:bg-white/80 transition-colors"
+        @click="$refs.fileInput.click()"
+      >
+        Browse Files
+      </button>
+      <p class="font-mono text-[9px] text-white/15 uppercase tracking-[0.1em]">or drag &amp; drop</p>
+    </div>
+
+    <!-- Project grid -->
+    <div
+      class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-px p-px"
+      x-show="projects.length > 0"
+    >
+      <template x-for="project in projects" :key="project.id">
+        <div
+          class="group relative aspect-square bg-white/[0.03] overflow-hidden cursor-pointer select-none"
+          :class="project.id === $store.editor.currentProjectId ? 'ring-1 ring-inset ring-white/40' : ''"
+          @click="openProject(project)"
+        >
+          <!-- Thumbnail -->
+          <img
+            x-show="project.preview"
+            :src="project.preview"
+            class="absolute inset-0 w-full h-full object-cover"
+            draggable="false"
+          />
+          <!-- Placeholder (no preview yet) -->
+          <div
+            x-show="!project.preview"
+            class="absolute inset-0 flex items-center justify-center"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" opacity="0.2">
+              <rect x="3" y="3" width="18" height="18" rx="2" stroke="white" stroke-width="1.2"/>
+              <circle cx="8.5" cy="8.5" r="2" stroke="white" stroke-width="1.2"/>
+              <path d="M3 16L8 11L12 15L16 10L21 16" stroke="white" stroke-width="1.2" stroke-linejoin="round"/>
+            </svg>
+          </div>
+
+          <!-- Info overlay (bottom gradient) -->
+          <div class="absolute inset-x-0 bottom-0 pt-8 pb-2.5 px-2.5 bg-gradient-to-t from-black/80 to-transparent">
+            <p class="font-mono text-[9px] text-white/80 truncate uppercase tracking-wider leading-none mb-1"
+              x-text="project.filename.replace(/\.[^.]+$/, '').slice(0, 20)">
+            </p>
+            <p class="font-mono text-[8px] text-white/35 uppercase tracking-wider leading-none"
+              x-text="relativeTime(project.updatedAt)">
+            </p>
+          </div>
+
+          <!-- Active indicator -->
+          <div
+            x-show="project.id === $store.editor.currentProjectId"
+            class="absolute top-2 left-2 w-1.5 h-1.5 rounded-full bg-white"
+          ></div>
+
+          <!-- Delete button -->
+          <button
+            class="absolute top-2 right-2 w-6 h-6 flex items-center justify-center rounded-full bg-black/60 text-white/50 hover:text-white hover:bg-black/80 transition-all opacity-0 group-hover:opacity-100"
+            @click.stop="confirmDelete(project)"
+            aria-label="Delete"
+          >
+            <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+              <line x1="1" y1="1" x2="7" y2="7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+              <line x1="7" y1="1" x2="1" y2="7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+      </template>
+    </div>
+
+    <!-- Bottom safe area padding -->
+    <div style="height: max(16px, env(safe-area-inset-bottom))"></div>
+  </div>
+
+  <!-- Hidden file input -->
+  <input
+    x-ref="fileInput"
+    type="file"
+    class="hidden"
+    accept="image/*,.cr2,.cr3,.nef,.nrw,.arw,.dng,.orf,.rw2,.pef,.raf,.raw,.rwl"
+    @change="handleFileInput($event)"
+  />
+</div>
+
+<script>
+import Alpine from 'alpinejs'
+import { loadStandardImage, isRawFile } from '../lib/imageLoader.js'
+import { decodeRaw } from '../lib/raw/decoder.js'
+import {
+  createProject,
+  loadProjects,
+  loadProject,
+  deleteProject,
+  updateProject,
+} from '../lib/storage.js'
+
+Alpine.data('imageLibrary', () => ({
+  projects: [],
+  loading: false,
+  dragging: false,
+
+  async init() {
+    this.loading = true
+    try {
+      this.projects = await loadProjects()
+    } finally {
+      this.loading = false
+    }
+
+    // Refresh list when library is re-opened
+    this.$watch('$store.editor.libraryOpen', async open => {
+      if (open) {
+        this.projects = await loadProjects()
+      }
+    })
+  },
+
+  async handleDrop(event) {
+    this.dragging = false
+    const file = event.dataTransfer?.files?.[0]
+    if (file) await this.loadNewFile(file)
+  },
+
+  async handleFileInput(event) {
+    const file = event.target.files?.[0]
+    if (file) await this.loadNewFile(file)
+    event.target.value = ''
+  },
+
+  async loadNewFile(file) {
+    const store = Alpine.store('editor')
+    store.clearHistory()
+    store.resetEdits()
+    store.filename = file.name
+    this.loading = true
+    try {
+      if (isRawFile(file)) {
+        const { pixels, width, height } = await decodeRaw(file)
+        const projectId = await createProject(file, true, file.name)
+        store.currentProjectId = projectId
+        store.rawPixels = pixels
+        store.width = width
+        store.height = height
+        store.isRaw = true
+        store.hasImage = true
+        store.libraryOpen = false
+        store.pushHistory()
+        window.dispatchEvent(new CustomEvent('editor:loadRaw', { detail: { pixels, width, height } }))
+      } else {
+        const { bitmap, width, height } = await loadStandardImage(file)
+        const projectId = await createProject(file, false, file.name)
+        store.currentProjectId = projectId
+        store.imageData = bitmap
+        store.width = width
+        store.height = height
+        store.isRaw = false
+        store.hasImage = true
+        store.libraryOpen = false
+        store.pushHistory()
+        window.dispatchEvent(new CustomEvent('editor:loadImage', { detail: { bitmap } }))
+      }
+    } catch (err) {
+      console.error('Failed to load image:', err)
+      alert(`Failed to load image: ${err.message}`)
+      store.filename = ''
+    } finally {
+      this.loading = false
+    }
+  },
+
+  async openProject(project) {
+    const store = Alpine.store('editor')
+
+    // Save current project state (without preview) before switching
+    if (store.currentProjectId && store.hasImage) {
+      updateProject(store.currentProjectId, store).catch(() => {})
+    }
+
+    store.restoring = true
+    store.hasImage = false
+    try {
+      const full = await loadProject(project.id)
+      if (!full) return
+
+      store.clearHistory()
+      store.resetEdits()
+      store.filename = full.filename
+      store.currentProjectId = full.id
+
+      if (full.isRaw) {
+        const { pixels, width, height } = await decodeRaw(full.imageBlob)
+        store.rawPixels = pixels
+        store.width = width
+        store.height = height
+        store.isRaw = true
+        if (full.editState) store.applyEditState(full.editState)
+        store.hasImage = true
+        store.libraryOpen = false
+        store.pushHistory()
+        window.dispatchEvent(new CustomEvent('editor:loadRaw', { detail: { pixels, width, height } }))
+      } else {
+        const bitmap = await createImageBitmap(full.imageBlob, { colorSpaceConversion: 'none' })
+        store.imageData = bitmap
+        store.width = bitmap.width
+        store.height = bitmap.height
+        store.isRaw = false
+        if (full.editState) store.applyEditState(full.editState)
+        store.hasImage = true
+        store.libraryOpen = false
+        store.pushHistory()
+        window.dispatchEvent(new CustomEvent('editor:loadImage', { detail: { bitmap } }))
+      }
+    } catch (err) {
+      console.error('Failed to open project:', err)
+      alert(`Failed to open: ${err.message}`)
+      store.hasImage = false
+    } finally {
+      store.restoring = false
+    }
+  },
+
+  async confirmDelete(project) {
+    // On touch devices group-hover doesn't show, so just delete directly.
+    // On desktop user already hovered to see the button.
+    await this._deleteProject(project)
+  },
+
+  async _deleteProject(project) {
+    await deleteProject(project.id)
+    this.projects = this.projects.filter(p => p.id !== project.id)
+    const store = Alpine.store('editor')
+    if (store.currentProjectId === project.id) {
+      store.hasImage = false
+      store.currentProjectId = null
+      store.clearHistory()
+      store.libraryOpen = false  // already showing since hasImage = false
+    }
+  },
+
+  relativeTime(ts) {
+    const diff = Date.now() - ts
+    const min = Math.floor(diff / 60000)
+    const hr = Math.floor(diff / 3600000)
+    const day = Math.floor(diff / 86400000)
+    if (min < 1) return 'just now'
+    if (min < 60) return `${min}m ago`
+    if (hr < 24) return `${hr}h ago`
+    if (day < 30) return `${day}d ago`
+    return new Date(ts).toLocaleDateString()
+  },
+}))
+</script>
