@@ -4,7 +4,8 @@
 
 <div
   id="canvas-container"
-  class="absolute inset-0 overflow-hidden bg-black"
+  class="absolute inset-0 overflow-hidden"
+  :style="`background-color: ${canvasBgColor}`"
   x-data="canvasView()"
   x-show="$store.editor.hasImage && !$store.editor.libraryOpen"
   x-cloak
@@ -23,7 +24,7 @@
     @mousedown="startPan($event)"
     @touchstart.passive="touchStart($event)"></canvas>
 
-  <!-- Minimap (desktop only) -->
+  <!-- Minimap (desktop only, conditional) -->
   <div
     class="absolute top-4 left-4 pointer-events-none hidden md:block"
     x-show="showMinimap && $store.editor.activePanel !== 'crop'"
@@ -41,6 +42,28 @@
       style="border: 1px solid rgba(255,255,255,0.18); background: #111; box-shadow: 0 2px 12px rgba(0,0,0,0.6);"
       :width="minimapSize.w"
       :height="minimapSize.h"></canvas>
+  </div>
+
+  <!-- Background colour picker (always visible) -->
+  <div
+    class="absolute top-4 flex flex-col gap-1.5"
+    x-show="$store.editor.activePanel !== 'crop'"
+    :style="`left: ${showMinimap ? minimapSize.w + 24 : 16}px`"
+  >
+    <template x-for="bg in [{key:'black',color:'#000',border:'rgba(255,255,255,0.25)'},{key:'grey',color:'#777',border:'rgba(255,255,255,0.25)'},{key:'white',color:'#fff',border:'rgba(0,0,0,0.25)'}]" :key="bg.key">
+      <button
+        @click="canvasBg = bg.key"
+        :title="`${bg.key} background`"
+        :style="`
+          width:14px;height:14px;border-radius:50%;
+          background:${bg.color};
+          border: ${canvasBg === bg.key ? '2px solid rgba(255,255,255,0.9)' : '1.5px solid ' + bg.border};
+          box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+          outline: none; cursor: pointer; padding: 0;
+          box-sizing: border-box;
+        `"
+      ></button>
+    </template>
   </div>
 
   <!-- iOS-style crop overlay -->
@@ -254,6 +277,10 @@
     showMinimap: false,
     minimapSize: { w: 160, h: 100 },
     _minimapDirty: false,
+    canvasBg: 'black',
+    get canvasBgColor() {
+      return this.canvasBg === 'white' ? '#ffffff' : this.canvasBg === 'grey' ? '#777777' : '#000000'
+    },
 
     init() {
       const canvas = this.$refs.canvas
