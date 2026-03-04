@@ -40,6 +40,7 @@ function serializeEdits(store: EditorStore): SessionData {
     detail: { ...store.detail },
     crop: { ...store.crop },
     frame: { ...store.frame },
+    lens: { ...store.lens },
     filename: store.filename,
     savedAt: Date.now(),
   }

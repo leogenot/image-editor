@@ -66,6 +66,10 @@
       <slot name="frame" />
     </div>
 
+    <div x-show="$store.editor.activePanel === 'lens'">
+      <slot name="lens" />
+    </div>
+
     <div x-show="$store.editor.activePanel === 'presets'">
       <slot name="presets" />
     </div>
@@ -85,6 +89,7 @@ Alpine.data('panelData', () => ({
     { id: 'detail',  label: 'DETAIL'  },
     { id: 'crop',    label: 'CROP'    },
     { id: 'frame',   label: 'FRAME'   },
+    { id: 'lens',    label: 'LENS'    },
     { id: 'presets', label: 'PRESETS' },
   ],
 

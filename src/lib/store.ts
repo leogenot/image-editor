@@ -1,5 +1,5 @@
 import type { Alpine } from 'alpinejs'
-import type { EditorStore, EditState, CurvePoint, HSLKey, FrameSettings } from '../types'
+import type { EditorStore, EditState, CurvePoint, HSLKey } from '../types'
 
 export function createEditorStore(Alpine: Alpine): void {
   const defaultCurvePts = (): CurvePoint[] => [[0, 0], [1, 1]]
@@ -64,6 +64,12 @@ export function createEditorStore(Alpine: Alpine): void {
       thickness: 0,
       color: '#ffffff',
     },
+    lens: {
+      curvature: 0,
+      vignette: 0,
+      fringe: 0,
+      edgeSoftness: 0,
+    },
 
     // UI state
     activePanel: 'light',
@@ -97,6 +103,7 @@ export function createEditorStore(Alpine: Alpine): void {
         },
         detail: this.detail,
         frame: { ...this.frame },
+        lens: { ...this.lens },
       })
     },
 
@@ -136,6 +143,7 @@ export function createEditorStore(Alpine: Alpine): void {
       if (state.detail) Object.assign(this.detail, state.detail)
       if (state.crop) Object.assign(this.crop, state.crop)
       if (state.frame) Object.assign(this.frame, state.frame)
+      if (state.lens) Object.assign(this.lens, state.lens)
     },
 
     _applySnapshot(snap: string) {
@@ -172,6 +180,7 @@ export function createEditorStore(Alpine: Alpine): void {
       this.curve.b   = defaultCurvePts()
       Object.assign(this.detail, { sharpness: 0, noiseReduction: 0, grain: 0, grainSize: 1 })
       Object.assign(this.frame, { thickness: 0, color: '#ffffff' })
+      Object.assign(this.lens, { curvature: 0, vignette: 0, fringe: 0, edgeSoftness: 0 })
       this.pushHistory()
       window.dispatchEvent(new CustomEvent('editor:render'))
     },

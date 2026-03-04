@@ -3,7 +3,7 @@
 export type CurvePoint = [number, number]
 export type CurveChannel = 'rgb' | 'r' | 'g' | 'b'
 export type HSLKey = 'red' | 'orange' | 'yellow' | 'green' | 'aqua' | 'blue' | 'purple' | 'magenta'
-export type PanelName = 'light' | 'color' | 'curve' | 'detail' | 'crop' | 'frame' | 'presets'
+export type PanelName = 'light' | 'color' | 'curve' | 'detail' | 'crop' | 'frame' | 'lens' | 'presets'
 
 export interface LightSettings {
   exposure: number    // EV stops, -5 to +5
@@ -50,6 +50,13 @@ export interface FrameSettings {
   color: string      // hex e.g. '#ffffff'
 }
 
+export interface LensSettings {
+  curvature: number    // fisheye barrel distortion, 0 to 1
+  vignette: number     // circular black mask strength, 0 to 1
+  fringe: number       // chromatic aberration at edges, 0 to 1
+  edgeSoftness: number // vignette mask edge softness, 0 to 1
+}
+
 export interface CropSettings {
   x: number
   y: number
@@ -73,6 +80,7 @@ export interface EditState {
   detail: DetailSettings
   crop: CropSettings
   frame: FrameSettings
+  lens: LensSettings
 }
 
 /** What gets persisted in IndexedDB per session. */
@@ -98,6 +106,7 @@ export interface RenderState {
   detail?: Partial<DetailSettings>
   crop?: Partial<CropSettings>
   frame?: Partial<FrameSettings>
+  lens?: Partial<LensSettings>
 }
 
 /** Full Alpine editor store shape. */

@@ -365,6 +365,7 @@
       this.$watch('$store.editor.crop', renderAndSave, { deep: true })
 
       this.$watch('$store.editor.frame', renderAndSave, { deep: true })
+      this.$watch('$store.editor.lens', renderAndSave, { deep: true })
 
       // Enforce aspect ratio whenever the ratio selection changes
       this.$watch('$store.editor.crop.ratio', ratio => {

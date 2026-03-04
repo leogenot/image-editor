@@ -38,6 +38,11 @@ uniform float u_cropY;
 uniform float u_cropW;
 uniform float u_cropH;
 
+uniform float u_curvature;    // fisheye barrel distortion, 0 to 1
+uniform float u_vignette;     // circular black mask strength, 0 to 1
+uniform float u_fringe;       // chromatic aberration at edges, 0 to 1
+uniform float u_edgeSoftness; // vignette mask edge softness, 0 to 1
+
 float grainHash(vec2 st) {
   return fract(sin(dot(st, vec2(12.9898, 78.233))) * 43758.5453);
 }
@@ -153,7 +158,35 @@ void main() {
     }
   }
 
-  vec4 texel = texture(u_texture, tc);
+  // Fisheye barrel distortion
+  if (u_curvature > 0.001) {
+    vec2 centered = tc - 0.5;
+    centered.x *= u_aspectRatio;
+    float r2 = dot(centered, centered);
+    centered *= 1.0 + u_curvature * r2;
+    centered.x /= u_aspectRatio;
+    tc = centered + 0.5;
+    if (tc.x < 0.0 || tc.x > 1.0 || tc.y < 0.0 || tc.y > 1.0) {
+      outColor = vec4(0.0, 0.0, 0.0, 1.0);
+      return;
+    }
+  }
+
+  // Sample texture — chromatic fringe separates R/G/B radially
+  vec4 texel;
+  if (u_fringe > 0.001) {
+    vec2 centered = tc - 0.5;
+    float dist = length(centered);
+    vec2 dir = dist > 0.0001 ? centered / dist : vec2(0.0);
+    float offset = u_fringe * dist * 0.08;
+    float rR = texture(u_texture, tc + dir * offset).r;
+    float gG = texture(u_texture, tc).g;
+    float bB = texture(u_texture, tc - dir * offset).b;
+    texel = vec4(rR, gG, bB, texture(u_texture, tc).a);
+  } else {
+    texel = texture(u_texture, tc);
+  }
+
   vec3 color = texel.rgb;
 
   if (!u_isFloat) {
@@ -231,6 +264,16 @@ void main() {
     vec2 noiseCoord = floor(v_texCoord * 512.0 / u_grainSize);
     float noise = grainHash(noiseCoord) * 2.0 - 1.0;
     color += vec3(noise * u_grain * 0.15);
+  }
+
+  // Circular vignette — computed in output space (v_texCoord) for a true lens mask
+  if (u_vignette > 0.001) {
+    vec2 vigCoord = (v_texCoord - 0.5) * 2.0;
+    vigCoord.x *= u_aspectRatio;
+    float vigDist = length(vigCoord);
+    float inner = 1.0 - mix(0.05, 0.7, u_edgeSoftness);
+    float vigMask = smoothstep(inner, 1.0, vigDist);
+    color = mix(color, vec3(0.0), vigMask * u_vignette);
   }
 
   outColor = vec4(clamp(color, 0.0, 1.0), texel.a);
