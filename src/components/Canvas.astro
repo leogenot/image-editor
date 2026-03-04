@@ -23,6 +23,26 @@
     @mousedown="startPan($event)"
     @touchstart.passive="touchStart($event)"></canvas>
 
+  <!-- Minimap (desktop only) -->
+  <div
+    class="absolute top-4 left-4 pointer-events-none hidden md:block"
+    x-show="showMinimap && $store.editor.activePanel !== 'crop'"
+    x-transition:enter="transition ease-out duration-200"
+    x-transition:enter-start="opacity-0 scale-95"
+    x-transition:enter-end="opacity-100 scale-100"
+    x-transition:leave="transition ease-in duration-150"
+    x-transition:leave-start="opacity-100 scale-100"
+    x-transition:leave-end="opacity-0 scale-95"
+    style="transform-origin: top left;"
+  >
+    <canvas
+      x-ref="minimap"
+      class="block"
+      style="border: 1px solid rgba(255,255,255,0.18); background: #111; box-shadow: 0 2px 12px rgba(0,0,0,0.6);"
+      :width="minimapSize.w"
+      :height="minimapSize.h"></canvas>
+  </div>
+
   <!-- iOS-style crop overlay -->
   <div
     class="absolute inset-0 pointer-events-none"
@@ -37,27 +57,58 @@
       @touchstart.prevent="startCropDragTouch($event)"
     >
       <!-- Rule of thirds grid (always visible in crop mode) -->
-      <div class="absolute inset-0 pointer-events-none" style="overflow:hidden;">
-        <div class="absolute inset-y-0" style="left:33.333%;width:1px;background:rgba(255,255,255,0.25)"></div>
-        <div class="absolute inset-y-0" style="left:66.666%;width:1px;background:rgba(255,255,255,0.25)"></div>
-        <div class="absolute inset-x-0" style="top:33.333%;height:1px;background:rgba(255,255,255,0.25)"></div>
-        <div class="absolute inset-x-0" style="top:66.666%;height:1px;background:rgba(255,255,255,0.25)"></div>
+      <div
+        class="absolute inset-0 pointer-events-none"
+        style="overflow:hidden;"
+      >
+        <div
+          class="absolute inset-y-0"
+          style="left:33.333%;width:1px;background:rgba(255,255,255,0.25)"
+        >
+        </div>
+        <div
+          class="absolute inset-y-0"
+          style="left:66.666%;width:1px;background:rgba(255,255,255,0.25)"
+        >
+        </div>
+        <div
+          class="absolute inset-x-0"
+          style="top:33.333%;height:1px;background:rgba(255,255,255,0.25)"
+        >
+        </div>
+        <div
+          class="absolute inset-x-0"
+          style="top:66.666%;height:1px;background:rgba(255,255,255,0.25)"
+        >
+        </div>
 
         <!-- Fine grid (3×3 subdivided = 9×9) shown while straightening -->
         <template x-if="$store.editor.straightening">
           <div class="absolute inset-0">
             <template x-for="i in [1,2,3,4,5,6,7,8]" :key="'fv'+i">
-              <div class="absolute inset-y-0" :style="`left:${i*11.111}%;width:1px;background:rgba(255,255,255,0.12)`"></div>
+              <div
+                class="absolute inset-y-0"
+                :style="`left:${i*11.111}%;width:1px;background:rgba(255,255,255,0.12)`"
+              >
+              </div>
             </template>
             <template x-for="i in [1,2,3,4,5,6,7,8]" :key="'fh'+i">
-              <div class="absolute inset-x-0" :style="`top:${i*11.111}%;height:1px;background:rgba(255,255,255,0.12)`"></div>
+              <div
+                class="absolute inset-x-0"
+                :style="`top:${i*11.111}%;height:1px;background:rgba(255,255,255,0.12)`"
+              >
+              </div>
             </template>
           </div>
         </template>
       </div>
 
       <!-- White border -->
-      <div class="absolute inset-0 pointer-events-none" style="border:1px solid rgba(255,255,255,0.9)"></div>
+      <div
+        class="absolute inset-0 pointer-events-none"
+        style="border:1px solid rgba(255,255,255,0.9)"
+      >
+      </div>
 
       <!-- Corner handles (L-shaped, thick) -->
       <!-- NW -->
@@ -67,8 +118,14 @@
         @mousedown.prevent.stop="startCropResize($event,'nw')"
         @touchstart.prevent.stop="startCropResizeTouch($event,'nw')"
       >
-        <div style="position:absolute;top:0;left:0;width:100%;height:3px;background:white;border-radius:2px 0 0 0"></div>
-        <div style="position:absolute;top:0;left:0;width:3px;height:100%;background:white;border-radius:2px 0 0 0"></div>
+        <div
+          style="position:absolute;top:0;left:0;width:100%;height:3px;background:white;border-radius:2px 0 0 0"
+        >
+        </div>
+        <div
+          style="position:absolute;top:0;left:0;width:3px;height:100%;background:white;border-radius:2px 0 0 0"
+        >
+        </div>
       </div>
       <!-- NE -->
       <div
@@ -77,8 +134,14 @@
         @mousedown.prevent.stop="startCropResize($event,'ne')"
         @touchstart.prevent.stop="startCropResizeTouch($event,'ne')"
       >
-        <div style="position:absolute;top:0;right:0;width:100%;height:3px;background:white;border-radius:0 2px 0 0"></div>
-        <div style="position:absolute;top:0;right:0;width:3px;height:100%;background:white;border-radius:0 2px 0 0"></div>
+        <div
+          style="position:absolute;top:0;right:0;width:100%;height:3px;background:white;border-radius:0 2px 0 0"
+        >
+        </div>
+        <div
+          style="position:absolute;top:0;right:0;width:3px;height:100%;background:white;border-radius:0 2px 0 0"
+        >
+        </div>
       </div>
       <!-- SW -->
       <div
@@ -87,8 +150,14 @@
         @mousedown.prevent.stop="startCropResize($event,'sw')"
         @touchstart.prevent.stop="startCropResizeTouch($event,'sw')"
       >
-        <div style="position:absolute;bottom:0;left:0;width:100%;height:3px;background:white;border-radius:0 0 0 2px"></div>
-        <div style="position:absolute;bottom:0;left:0;width:3px;height:100%;background:white;border-radius:0 0 0 2px"></div>
+        <div
+          style="position:absolute;bottom:0;left:0;width:100%;height:3px;background:white;border-radius:0 0 0 2px"
+        >
+        </div>
+        <div
+          style="position:absolute;bottom:0;left:0;width:3px;height:100%;background:white;border-radius:0 0 0 2px"
+        >
+        </div>
       </div>
       <!-- SE -->
       <div
@@ -97,8 +166,14 @@
         @mousedown.prevent.stop="startCropResize($event,'se')"
         @touchstart.prevent.stop="startCropResizeTouch($event,'se')"
       >
-        <div style="position:absolute;bottom:0;right:0;width:100%;height:3px;background:white;border-radius:0 0 2px 0"></div>
-        <div style="position:absolute;bottom:0;right:0;width:3px;height:100%;background:white;border-radius:0 0 2px 0"></div>
+        <div
+          style="position:absolute;bottom:0;right:0;width:100%;height:3px;background:white;border-radius:0 0 2px 0"
+        >
+        </div>
+        <div
+          style="position:absolute;bottom:0;right:0;width:3px;height:100%;background:white;border-radius:0 0 2px 0"
+        >
+        </div>
       </div>
 
       <!-- Edge handles (mid-edge, small bars) -->
@@ -109,7 +184,10 @@
         @mousedown.prevent.stop="startCropResize($event,'n')"
         @touchstart.prevent.stop="startCropResizeTouch($event,'n')"
       >
-        <div style="position:absolute;top:0;left:50%;transform:translateX(-50%);width:28px;height:3px;background:white;border-radius:2px"></div>
+        <div
+          style="position:absolute;top:0;left:50%;transform:translateX(-50%);width:28px;height:3px;background:white;border-radius:2px"
+        >
+        </div>
       </div>
       <!-- S -->
       <div
@@ -118,7 +196,10 @@
         @mousedown.prevent.stop="startCropResize($event,'s')"
         @touchstart.prevent.stop="startCropResizeTouch($event,'s')"
       >
-        <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:28px;height:3px;background:white;border-radius:2px"></div>
+        <div
+          style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:28px;height:3px;background:white;border-radius:2px"
+        >
+        </div>
       </div>
       <!-- W -->
       <div
@@ -127,7 +208,10 @@
         @mousedown.prevent.stop="startCropResize($event,'w')"
         @touchstart.prevent.stop="startCropResizeTouch($event,'w')"
       >
-        <div style="position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:28px;background:white;border-radius:2px"></div>
+        <div
+          style="position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:28px;background:white;border-radius:2px"
+        >
+        </div>
       </div>
       <!-- E -->
       <div
@@ -136,7 +220,10 @@
         @mousedown.prevent.stop="startCropResize($event,'e')"
         @touchstart.prevent.stop="startCropResizeTouch($event,'e')"
       >
-        <div style="position:absolute;right:0;top:50%;transform:translateY(-50%);width:3px;height:28px;background:white;border-radius:2px"></div>
+        <div
+          style="position:absolute;right:0;top:50%;transform:translateY(-50%);width:3px;height:28px;background:white;border-radius:2px"
+        >
+        </div>
       </div>
     </div>
   </div>
@@ -164,6 +251,9 @@
     _panOriginX: 0,
     _panOriginY: 0,
     renderer: null,
+    showMinimap: false,
+    minimapSize: { w: 160, h: 100 },
+    _minimapDirty: false,
 
     init() {
       const canvas = this.$refs.canvas
@@ -178,9 +268,13 @@
         this.naturalH = bitmap.height
         canvas.width = bitmap.width
         canvas.height = bitmap.height
+        this._setMinimapSize()
         this.renderer.loadImage(bitmap)
         this.renderer.render(Alpine.store('editor'))
-        this.$nextTick(() => this.fitToScreen())
+        this.$nextTick(() => {
+          this.fitToScreen()
+          this._scheduleMinimap()
+        })
         computeHistogramFromBitmap(bitmap).then(hist => {
           Alpine.store('editor').histogram = hist
         })
@@ -193,22 +287,28 @@
         this.naturalH = height
         canvas.width = width
         canvas.height = height
+        this._setMinimapSize()
         this.renderer.loadRawPixels(pixels, width, height)
         this.renderer.render(Alpine.store('editor'))
-        this.$nextTick(() => this.fitToScreen())
+        this.$nextTick(() => {
+          this.fitToScreen()
+          this._scheduleMinimap()
+        })
         Alpine.store('editor').histogram = computeHistogramFromRaw(pixels)
       })
 
       // Re-render on explicit editor:render events (undo/redo/reset/presets)
       window.addEventListener('editor:render', () => {
         this.renderer?.render(Alpine.store('editor'))
+        this._scheduleMinimap()
       })
 
       // Debounced save — called from watches so every slider change is captured
       let _saveTimer = null
       const deferSave = () => {
         const store = Alpine.store('editor')
-        if (!store.hasImage || store.restoring || !store.currentProjectId) return
+        if (!store.hasImage || store.restoring || !store.currentProjectId)
+          return
         clearTimeout(_saveTimer)
         _saveTimer = setTimeout(async () => {
           try {
@@ -225,46 +325,30 @@
       }
 
       // Watch store edit values — re-render and debounce save on any change
-      this.$watch(
-        '$store.editor.light',
-        () => { this.renderer?.render(Alpine.store('editor')); deferSave() },
-        { deep: true },
-      )
+      const renderAndSave = () => {
+        this.renderer?.render(Alpine.store('editor'))
+        this._scheduleMinimap()
+        deferSave()
+      }
 
-      this.$watch(
-        '$store.editor.color',
-        () => { this.renderer?.render(Alpine.store('editor')); deferSave() },
-        { deep: true },
-      )
+      this.$watch('$store.editor.light', renderAndSave, { deep: true })
+      this.$watch('$store.editor.color', renderAndSave, { deep: true })
+      this.$watch('$store.editor.curve', renderAndSave, { deep: true })
+      this.$watch('$store.editor.detail', renderAndSave, { deep: true })
+      this.$watch('$store.editor.crop', renderAndSave, { deep: true })
 
-      this.$watch(
-        '$store.editor.curve',
-        () => { this.renderer?.render(Alpine.store('editor')); deferSave() },
-        { deep: true },
-      )
-
-      this.$watch(
-        '$store.editor.detail',
-        () => { this.renderer?.render(Alpine.store('editor')); deferSave() },
-        { deep: true },
-      )
-
-      this.$watch(
-        '$store.editor.crop',
-        () => { this.renderer?.render(Alpine.store('editor')); deferSave() },
-        { deep: true },
-      )
-
-      this.$watch(
-        '$store.editor.frame',
-        () => { this.renderer?.render(Alpine.store('editor')); deferSave() },
-        { deep: true },
-      )
+      this.$watch('$store.editor.frame', renderAndSave, { deep: true })
 
       // Enforce aspect ratio whenever the ratio selection changes
-      this.$watch('$store.editor.crop.ratio', (ratio) => {
+      this.$watch('$store.editor.crop.ratio', ratio => {
         if (ratio === 'free' || !this.naturalW || !this.naturalH) return
-        const ratioMap = { '1:1': 1, '4:3': 4/3, '16:9': 16/9, '3:2': 3/2, '9:16': 9/16 }
+        const ratioMap = {
+          '1:1': 1,
+          '4:3': 4 / 3,
+          '16:9': 16 / 9,
+          '3:2': 3 / 2,
+          '9:16': 9 / 16,
+        }
         const r = ratioMap[ratio]
         if (!r) return
         const crop = Alpine.store('editor').crop
@@ -272,12 +356,21 @@
         const cx = x + w / 2
         const cy = y + h / 2
         // UV ratio: (crop_w * naturalW) / (crop_h * naturalH) = r  =>  crop_w/crop_h = r * naturalH/naturalW
-        const uvRatio = r * this.naturalH / this.naturalW
-        let newW = 1, newH = 1 / uvRatio
-        if (newH > 1) { newH = 1; newW = newH * uvRatio }
+        const uvRatio = (r * this.naturalH) / this.naturalW
+        let newW = 1,
+          newH = 1 / uvRatio
+        if (newH > 1) {
+          newH = 1
+          newW = newH * uvRatio
+        }
         const newX = Math.max(0, Math.min(1 - newW, cx - newW / 2))
         const newY = Math.max(0, Math.min(1 - newH, cy - newH / 2))
-        Object.assign(Alpine.store('editor').crop, { x: newX, y: newY, w: newW, h: newH })
+        Object.assign(Alpine.store('editor').crop, {
+          x: newX,
+          y: newY,
+          w: newW,
+          h: newH,
+        })
         Alpine.store('editor').pushHistory()
       })
 
@@ -290,10 +383,13 @@
       const container = this.$el
       setupGestures(container, {
         doubleTap: () => this.fitToScreen(),
-        pinchZoom: ({ scale, dx, dy }) => {
-          this.zoom = Math.max(0.05, Math.min(30, this.zoom * scale))
-          this.panX += dx
-          this.panY += dy
+        pinchZoom: ({ scale, dx, dy, cx, cy }) => {
+          const newZoom = Math.max(0.05, Math.min(30, this.zoom * scale))
+          // Zoom toward the cursor / pinch-center point (cx, cy)
+          this.panX = cx - (cx - this.panX) * (newZoom / this.zoom) + dx
+          this.panY = cy - (cy - this.panY) * (newZoom / this.zoom) + dy
+          this.zoom = newZoom
+          this._onPanZoom()
         },
       })
 
@@ -302,6 +398,7 @@
         if (!this.panning) return
         this.panX = this._panOriginX + (e.clientX - this._panStartX)
         this.panY = this._panOriginY + (e.clientY - this._panStartY)
+        this._scheduleMinimap()
       })
       window.addEventListener('mouseup', () => {
         this.panning = false
@@ -330,6 +427,7 @@
             this._panOriginX + (ev.touches[0].clientX - this._panStartX)
           this.panY =
             this._panOriginY + (ev.touches[0].clientY - this._panStartY)
+          this._scheduleMinimap()
         }
         const onEnd = () => {
           window.removeEventListener('touchmove', onMove)
@@ -345,12 +443,14 @@
     cropBoxStyle() {
       if (!this.naturalW || !this.naturalH) return ''
       const { x, y, w, h } = this.$store.editor.crop
-      const left   = this.panX + x * this.naturalW * this.zoom
-      const top    = this.panY + y * this.naturalH * this.zoom
-      const width  = w * this.naturalW * this.zoom
+      const left = this.panX + x * this.naturalW * this.zoom
+      const top = this.panY + y * this.naturalH * this.zoom
+      const width = w * this.naturalW * this.zoom
       const height = h * this.naturalH * this.zoom
-      return `position:absolute;left:${left}px;top:${top}px;width:${width}px;height:${height}px;` +
-             `box-shadow:0 0 0 9999px rgba(0,0,0,0.55);overflow:visible;`
+      return (
+        `position:absolute;left:${left}px;top:${top}px;width:${width}px;height:${height}px;` +
+        `box-shadow:0 0 0 9999px rgba(0,0,0,0.55);overflow:visible;`
+      )
     },
 
     _clampCrop(x, y, w, h) {
@@ -364,16 +464,23 @@
     _enforceRatio(w, h, primary = 'w') {
       const ratio = this.$store.editor.crop.ratio
       if (ratio === 'free') return { w, h }
-      const ratioMap = { '1:1': 1, '4:3': 4/3, '16:9': 16/9, '3:2': 3/2, '9:16': 9/16 }
+      const ratioMap = {
+        '1:1': 1,
+        '4:3': 4 / 3,
+        '16:9': 16 / 9,
+        '3:2': 3 / 2,
+        '9:16': 9 / 16,
+      }
       const r = ratioMap[ratio]
       if (!r || !this.naturalW || !this.naturalH) return { w, h }
-      const uvRatio = r * this.naturalH / this.naturalW
+      const uvRatio = (r * this.naturalH) / this.naturalW
       if (primary === 'w') return { w, h: w / uvRatio }
       return { w: h * uvRatio, h }
     },
 
     startCropDrag(e) {
-      const startX = e.clientX, startY = e.clientY
+      const startX = e.clientX,
+        startY = e.clientY
       const { x: ox, y: oy, w: ow, h: oh } = { ...this.$store.editor.crop }
       const onMove = ev => {
         const dx = (ev.clientX - startX) / (this.naturalW * this.zoom)
@@ -392,7 +499,8 @@
 
     startCropDragTouch(e) {
       const touch = e.touches[0]
-      const startX = touch.clientX, startY = touch.clientY
+      const startX = touch.clientX,
+        startY = touch.clientY
       const { x: ox, y: oy, w: ow, h: oh } = { ...this.$store.editor.crop }
       const onMove = ev => {
         ev.preventDefault()
@@ -412,7 +520,8 @@
     },
 
     startCropResize(e, handle) {
-      const startX = e.clientX, startY = e.clientY
+      const startX = e.clientX,
+        startY = e.clientY
       const { x: ox, y: oy, w: ow, h: oh } = { ...this.$store.editor.crop }
       const scaleX = this.naturalW * this.zoom
       const scaleY = this.naturalH * this.zoom
@@ -420,13 +529,23 @@
       const onMove = ev => {
         const dx = (ev.clientX - startX) / scaleX
         const dy = (ev.clientY - startY) / scaleY
-        let x = ox, y = oy, w = ow, h = oh
+        let x = ox,
+          y = oy,
+          w = ow,
+          h = oh
         if (handle.includes('e')) w = Math.max(0.04, ow + dx)
         if (handle.includes('s')) h = Math.max(0.04, oh + dy)
-        if (handle.includes('w')) { x = ox + dx; w = Math.max(0.04, ow - dx) }
-        if (handle.includes('n')) { y = oy + dy; h = Math.max(0.04, oh - dy) }
+        if (handle.includes('w')) {
+          x = ox + dx
+          w = Math.max(0.04, ow - dx)
+        }
+        if (handle.includes('n')) {
+          y = oy + dy
+          h = Math.max(0.04, oh - dy)
+        }
         const r = this._enforceRatio(w, h, isH ? 'w' : 'h')
-        w = r.w; h = r.h
+        w = r.w
+        h = r.h
         if (handle.includes('w')) x = ox + ow - w
         if (handle.includes('n')) y = oy + oh - h
         const c = this._clampCrop(x, y, w, h)
@@ -443,7 +562,8 @@
 
     startCropResizeTouch(e, handle) {
       const touch = e.touches[0]
-      const startX = touch.clientX, startY = touch.clientY
+      const startX = touch.clientX,
+        startY = touch.clientY
       const { x: ox, y: oy, w: ow, h: oh } = { ...this.$store.editor.crop }
       const scaleX = this.naturalW * this.zoom
       const scaleY = this.naturalH * this.zoom
@@ -453,13 +573,23 @@
         const t = ev.touches[0]
         const dx = (t.clientX - startX) / scaleX
         const dy = (t.clientY - startY) / scaleY
-        let x = ox, y = oy, w = ow, h = oh
+        let x = ox,
+          y = oy,
+          w = ow,
+          h = oh
         if (handle.includes('e')) w = Math.max(0.04, ow + dx)
         if (handle.includes('s')) h = Math.max(0.04, oh + dy)
-        if (handle.includes('w')) { x = ox + dx; w = Math.max(0.04, ow - dx) }
-        if (handle.includes('n')) { y = oy + dy; h = Math.max(0.04, oh - dy) }
+        if (handle.includes('w')) {
+          x = ox + dx
+          w = Math.max(0.04, ow - dx)
+        }
+        if (handle.includes('n')) {
+          y = oy + dy
+          h = Math.max(0.04, oh - dy)
+        }
         const r = this._enforceRatio(w, h, isH ? 'w' : 'h')
-        w = r.w; h = r.h
+        w = r.w
+        h = r.h
         if (handle.includes('w')) x = ox + ow - w
         if (handle.includes('n')) y = oy + oh - h
         const c = this._clampCrop(x, y, w, h)
@@ -476,10 +606,10 @@
 
     cropClipPath() {
       const { x, y, w, h } = this.$store.editor.crop
-      const top    = (y * 100).toFixed(3) + '%'
-      const right  = ((1 - x - w) * 100).toFixed(3) + '%'
+      const top = (y * 100).toFixed(3) + '%'
+      const right = ((1 - x - w) * 100).toFixed(3) + '%'
       const bottom = ((1 - y - h) * 100).toFixed(3) + '%'
-      const left   = (x * 100).toFixed(3) + '%'
+      const left = (x * 100).toFixed(3) + '%'
       return `inset(${top} ${right} ${bottom} ${left})`
     },
 
@@ -515,6 +645,93 @@
         this.panX = (cw - screenCropW) / 2 - crop.x * this.naturalW * this.zoom
         this.panY = (ch - screenCropH) / 2 - crop.y * this.naturalH * this.zoom
       }
+      this._onPanZoom()
+    },
+
+    _onPanZoom() {
+      const container = this.$el
+      if (!container || !this.naturalW) return
+      this.showMinimap =
+        this.naturalW * this.zoom > container.clientWidth ||
+        this.naturalH * this.zoom > container.clientHeight
+      this._scheduleMinimap()
+    },
+
+    _scheduleMinimap() {
+      if (this._minimapDirty) return
+      this._minimapDirty = true
+      requestAnimationFrame(() => {
+        this._minimapDirty = false
+        this._drawMinimap()
+      })
+    },
+
+    _setMinimapSize() {
+      const maxW = 160,
+        maxH = 100
+      if (!this.naturalW || !this.naturalH) {
+        this.minimapSize = { w: maxW, h: maxH }
+        return
+      }
+      const ratio = this.naturalW / this.naturalH
+      if (ratio > maxW / maxH) {
+        this.minimapSize = { w: maxW, h: Math.round(maxW / ratio) }
+      } else {
+        this.minimapSize = { w: Math.round(maxH * ratio), h: maxH }
+      }
+    },
+
+    _drawMinimap() {
+      const mm = this.$refs.minimap
+      if (!mm || !this.naturalW || !this.naturalH) return
+      const ctx = mm.getContext('2d')
+      const mmW = mm.width
+      const mmH = mm.height
+      if (!mmW || !mmH) return
+
+      // Full image dimmed
+      ctx.clearRect(0, 0, mmW, mmH)
+      ctx.globalAlpha = 0.45
+      try {
+        ctx.drawImage(this.$refs.canvas, 0, 0, mmW, mmH)
+      } catch {
+        return
+      }
+      ctx.globalAlpha = 1
+
+      // Visible region in normalised image coords [0..1]
+      const container = this.$el
+      const cw = container.clientWidth
+      const ch = container.clientHeight
+      const visL = Math.max(0, -this.panX / (this.zoom * this.naturalW))
+      const visT = Math.max(0, -this.panY / (this.zoom * this.naturalH))
+      const visR = Math.min(1, (cw - this.panX) / (this.zoom * this.naturalW))
+      const visB = Math.min(1, (ch - this.panY) / (this.zoom * this.naturalH))
+
+      const rx = visL * mmW
+      const ry = visT * mmH
+      const rw = Math.max(0, (visR - visL) * mmW)
+      const rh = Math.max(0, (visB - visT) * mmH)
+
+      // Redraw viewport area at full brightness via clip
+      if (rw > 0 && rh > 0) {
+        ctx.save()
+        ctx.beginPath()
+        ctx.rect(rx, ry, rw, rh)
+        ctx.clip()
+        ctx.drawImage(this.$refs.canvas, 0, 0, mmW, mmH)
+        ctx.restore()
+      }
+
+      // Viewport border
+      ctx.strokeStyle = 'rgba(255,255,255,0.85)'
+      ctx.lineWidth = 1.5
+      ctx.strokeRect(
+        rx + 0.75,
+        ry + 0.75,
+        Math.max(0, rw - 1.5),
+        Math.max(0, rh - 1.5),
+      )
     },
   }))
 </script>
