@@ -1,42 +1,59 @@
 import type { CurvePoint } from '../types'
 
-// Catmull-Rom spline evaluation through sorted control points
-// points: array of [x, y] pairs, sorted by x ascending, x and y in [0, 1]
-// t: input x value in [0, 1]
-// returns: output y value in [0, 1]
-export function evalCurve(points: CurvePoint[], t: number): number {
-  const n = points.length - 1
-  if (n < 1) return t
+// PCHIP tangent slope at point p1, using neighbours p0 and p2.
+// Returns 0 if the secant slopes have opposite signs (monotonicity condition).
+function pchipTangent(p0: CurvePoint, p1: CurvePoint, p2: CurvePoint): number {
+  const h0 = p1[0] - p0[0]
+  const h1 = p2[0] - p1[0]
+  if (h0 <= 0 || h1 <= 0) return 0
+  const d0 = (p1[1] - p0[1]) / h0
+  const d1 = (p2[1] - p1[1]) / h1
+  if (d0 * d1 <= 0) return 0
+  // Weighted harmonic mean (Fritsch-Carlson)
+  const w0 = 2 * h1 + h0
+  const w1 = h1 + 2 * h0
+  return (w0 + w1) / (w0 / d0 + w1 / d1)
+}
 
-  let seg = n - 1
-  for (let i = 0; i < n; i++) {
-    if (t <= points[i + 1][0]) {
-      seg = i
-      break
-    }
+// Monotone piecewise cubic Hermite interpolation (PCHIP).
+// No overshoot between control points regardless of their spacing.
+export function evalCurve(points: CurvePoint[], t: number): number {
+  const n = points.length
+  if (n < 2) return t
+  if (t <= points[0][0]) return points[0][1]
+  if (t >= points[n - 1][0]) return points[n - 1][1]
+
+  // Find segment
+  let seg = n - 2
+  for (let i = 0; i < n - 1; i++) {
+    if (t < points[i + 1][0]) { seg = i; break }
   }
 
-  const x0 = points[seg][0]
-  const x1 = points[seg + 1][0]
-  const lt = x1 === x0 ? 0 : (t - x0) / (x1 - x0)
+  const x0 = points[seg][0],     y0 = points[seg][1]
+  const x1 = points[seg + 1][0], y1 = points[seg + 1][1]
+  const h = x1 - x0
+  if (h < 1e-10) return y0
 
-  const p1 = points[seg]
-  const p2 = points[seg + 1]
-  // Reflected phantom points at boundaries keep the spline linear through collinear points
-  const p0: CurvePoint = seg > 0 ? points[seg - 1] : [2*p1[0]-p2[0], 2*p1[1]-p2[1]]
-  const p3: CurvePoint = seg < n - 1 ? points[seg + 2] : [2*p2[0]-p1[0], 2*p2[1]-p1[1]]
+  const dk = (y1 - y0) / h
 
+  // Endpoint tangents fall back to the local secant slope (linear extension)
+  const m0 = seg === 0
+    ? dk
+    : pchipTangent(points[seg - 1], points[seg], points[seg + 1])
+  const m1 = seg === n - 2
+    ? dk
+    : pchipTangent(points[seg], points[seg + 1], points[seg + 2])
+
+  const lt = (t - x0) / h
   const t2 = lt * lt
-  const t3 = lt * lt * lt
+  const t3 = lt * t2
 
-  const v = (
-    (-t3 + 2 * t2 - lt) * p0[1] * 0.5 +
-    (3 * t3 - 5 * t2 + 2) * p1[1] * 0.5 +
-    (-3 * t3 + 4 * t2 + lt) * p2[1] * 0.5 +
-    (t3 - t2) * p3[1] * 0.5
-  )
-
-  return Math.max(0, Math.min(1, v))
+  return Math.max(0, Math.min(1,
+    (2 * t3 - 3 * t2 + 1) * y0 +
+    (t3 - 2 * t2 + lt) * h * m0 +
+    (-2 * t3 + 3 * t2) * y1 +
+    (t3 - t2) * h * m1,
+  ))
 }
 
 // Build SVG polyline path string from curve control points
