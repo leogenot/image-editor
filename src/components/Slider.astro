@@ -22,14 +22,27 @@ const pos = `(${storeKey} - ${min}) / ${range} * 100`
 ---
 
 <div class="py-2.5 border-b border-white/4 last:border-0">
-  <div class="flex justify-between items-baseline mb-2">
+  <div class="flex justify-between items-center mb-2">
     <span class="font-mono text-[9px] uppercase tracking-[0.15em] text-white/40"
       >{label}</span
     >
-    <span
-      class="font-mono text-[10px] text-white tabular-nums"
-      x-text={`(${storeKey} > 0 ? '+' : '') + Number(${storeKey}).toFixed(${decimals})`}
-    ></span>
+    <div class="flex items-center gap-1.5">
+      <span
+        class="font-mono text-[10px] text-white tabular-nums"
+        x-text={`(${storeKey} > 0 ? '+' : '') + Number(${storeKey}).toFixed(${decimals})`}
+      ></span>
+      <button
+        class="opacity-0 transition-opacity text-white/30 hover:text-white/70"
+        :class={`${storeKey} !== ${defaultValue} ? 'opacity-100' : ''`}
+        @click={`${storeKey} = ${defaultValue}; $store.editor.pushHistory(); window.dispatchEvent(new CustomEvent('editor:render'))`}
+        title="Reset"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+          <path d="M3 3v5h5"/>
+        </svg>
+      </button>
+    </div>
   </div>
 
   <!-- Slider track + thumb container (44px touch target) -->
