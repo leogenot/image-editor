@@ -1,8 +1,7 @@
-// RAW file decoder using LibRaw WASM
-// Falls back to browser-native worker for JPEG/PNG/WebP/DNG
+// RAW file decoder — runs entirely in a Web Worker (rawWorker.ts)
+// LibRaw WASM and browser-native fallback both live in the worker.
 
 import type { RawWorkerRequest, RawWorkerResponse, RawDecodeResult } from '../../types'
-import LibRaw from 'libraw-wasm'
 
 let worker: Worker | null = null
 const pendingCallbacks = new Map<number, {
@@ -25,56 +24,34 @@ function getWorker(): Worker {
     }
     worker.onerror = (e) => {
       console.error('RAW Worker error:', e)
+      // Reject all pending on unexpected worker crash
+      for (const cb of pendingCallbacks.values()) {
+        cb.reject(new Error('RAW decode worker crashed'))
+      }
+      pendingCallbacks.clear()
+      worker = null
     }
   }
   return worker
 }
 
-function rawDataToFloat32Linear(
-  data: Uint8Array | Uint16Array, width: number, height: number, colors: number, bits: number
-): Float32Array {
-  const pixels = new Float32Array(width * height * 4)
-  const maxVal = bits === 16 ? 65535 : 255
-  // For 8-bit: data is Uint8Array, each element is one channel byte (0-255)
-  // For 16-bit: data is Uint16Array, each element is one channel value (0-65535)
-  // Either way, element index = i * colors + channel
-  for (let i = 0; i < width * height; i++) {
-    const s = i * colors
-    const d = i * 4
-    const r = data[s] / maxVal
-    const g = data[s + 1] / maxVal
-    const b = data[s + 2] / maxVal
-    // sRGB → linear (renderer expects linear Float32 when u_isFloat=true)
-    pixels[d]     = Math.pow(r, 2.2)
-    pixels[d + 1] = Math.pow(g, 2.2)
-    pixels[d + 2] = Math.pow(b, 2.2)
-    pixels[d + 3] = 1.0
-  }
-  return pixels
-}
-
 export async function decodeRaw(file: File): Promise<RawDecodeResult> {
   const buffer = await file.arrayBuffer()
-
-  // Try LibRaw WASM for proper RAW support (ARW, CR2, NEF, RAF, DNG, etc.)
-  try {
-    const raw = new LibRaw()
-    // Slice so LibRaw's internal worker transfer doesn't detach our buffer
-    await raw.open(new Uint8Array(buffer.slice(0)), {
-      useCameraWb: true,
-      outputBps: 8,
-      outputColor: 1,  // sRGB
-    })
-    const { data, width, height, colors, bits } = await raw.imageData()
-    return { pixels: rawDataToFloat32Linear(data, width, height, colors, bits), width, height }
-  } catch {
-    // Fall through to browser-native worker (JPEG, PNG, WebP)
-  }
-
   const id = nextId++
   const w = getWorker()
   return new Promise((resolve, reject) => {
     pendingCallbacks.set(id, { resolve, reject })
     w.postMessage({ id, buffer, filename: file.name } as RawWorkerRequest, [buffer])
   })
+}
+
+/** Cancel any in-flight decode. Safe to call at any time. */
+export function cancelDecode(): void {
+  if (!worker) return
+  worker.terminate()
+  worker = null
+  for (const cb of pendingCallbacks.values()) {
+    cb.reject(new Error('cancelled'))
+  }
+  pendingCallbacks.clear()
 }
