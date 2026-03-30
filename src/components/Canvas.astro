@@ -341,9 +341,17 @@
           try {
             const s = Alpine.store('editor')
             if (!s.hasImage || !s.currentProjectId) return
-            const blob = await new Promise(r =>
-              this.$refs.canvas.toBlob(r, 'image/jpeg', 0.35),
-            )
+            // Resize to 400px wide thumbnail before saving to keep IndexedDB small
+            const src = this.$refs.canvas
+            const maxW = 400
+            const scale = Math.min(1, maxW / src.width)
+            const tw = Math.round(src.width * scale)
+            const th = Math.round(src.height * scale)
+            const thumb = document.createElement('canvas')
+            thumb.width = tw
+            thumb.height = th
+            thumb.getContext('2d').drawImage(src, 0, 0, tw, th)
+            const blob = await new Promise(r => thumb.toBlob(r, 'image/jpeg', 0.7))
             await updateProject(s.currentProjectId, s, blob)
           } catch {
             // Auto-save failure is non-critical
