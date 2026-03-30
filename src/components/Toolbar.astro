@@ -10,13 +10,13 @@
   x-cloak
   style="top: max(16px, env(safe-area-inset-top))"
 >
-  <!-- Filename -->
+  <!-- Filename (hidden on very small screens to prevent overflow) -->
   <span
-    class="font-mono text-[10px] text-white/60 uppercase tracking-widest min-w-0 truncate"
+    class="hidden xs:inline font-mono text-[10px] text-white/60 uppercase tracking-widest min-w-0 truncate"
     x-text="$store.editor.filename.replace(/\.[^.]+$/, '').toUpperCase().slice(0, 16)"
   ></span>
 
-  <div class="w-px h-3 bg-white/10 mx-1"></div>
+  <div class="hidden xs:block w-px h-3 bg-white/10 mx-1"></div>
 
   <!-- Undo -->
   <button
@@ -221,9 +221,11 @@
         @click="$store.editor.exportOpen = false">Cancel</button
       >
       <button
-        class="flex-1 py-2.5 font-mono text-[9px] uppercase tracking-[0.15em] bg-white text-black rounded-lg hover:bg-white/90 transition-colors"
-        @click="doExport()">Download</button
-      >
+        class="flex-1 py-2.5 font-mono text-[9px] uppercase tracking-[0.15em] bg-white text-black rounded-lg hover:bg-white/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        :disabled="exporting"
+        @click="doExport()"
+        x-text="exporting ? 'Exporting…' : 'Download'"
+      ></button>
     </div>
   </div>
 </div>
@@ -236,11 +238,12 @@
   Alpine.data('exportDialog', () => ({
     format: 'image/jpeg',
     quality: 0.92,
+    exporting: false,
     _lastTap: 0,
 
     doExport() {
       const glCanvas = document.getElementById('gl-canvas')
-      if (!glCanvas) return
+      if (!glCanvas || this.exporting) return
       const store = Alpine.store('editor')
       const { format, quality } = this
       const ext = format === 'image/png' ? 'png' : 'jpg'
@@ -260,8 +263,10 @@
       const ctx = tmp.getContext('2d')
       ctx.drawImage(glCanvas, srcX, srcY, srcW, srcH, 0, 0, srcW, srcH)
 
+      this.exporting = true
       tmp.toBlob(
         blob => {
+          this.exporting = false
           if (!blob) return
           const url = URL.createObjectURL(blob)
           const a = document.createElement('a')

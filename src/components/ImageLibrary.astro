@@ -84,10 +84,10 @@
       </div>
     </div>
 
-    <!-- Loading overlay while restoring a project -->
+    <!-- Decoding / restoring overlay (RAW decode in worker) -->
     <div
       class="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/80 backdrop-blur-sm z-40"
-      x-show="$store.editor.restoring"
+      x-show="decoding || $store.editor.restoring"
       x-cloak
     >
       <div
@@ -96,9 +96,15 @@
       </div>
       <p
         class="font-mono text-[10px] text-white/40 uppercase tracking-[0.15em]"
+        x-text="$store.editor.restoring ? 'Opening…' : 'Decoding RAW…'"
       >
-        Opening...
       </p>
+      <button
+        class="mt-1 px-4 py-1.5 font-mono text-[9px] uppercase tracking-[0.15em] border border-white/15 rounded-full text-white/35 hover:text-white/60 hover:border-white/30 transition-colors"
+        @click="cancelDecoding()"
+      >
+        Cancel
+      </button>
     </div>
 
     <!-- Empty state -->
@@ -183,7 +189,9 @@
           <img
             x-show="project.preview"
             :src="project.preview"
+            :alt="`${project.filename} preview`"
             class="absolute inset-0 w-full h-full object-cover"
+            loading="lazy"
             draggable="false"
           />
           <!-- Placeholder (no preview yet) -->
@@ -285,7 +293,7 @@
 <script>
   import Alpine from 'alpinejs'
   import { loadStandardImage, isRawFile } from '../lib/imageLoader.js'
-  import { decodeRaw } from '../lib/raw/decoder.js'
+  import { decodeRaw, cancelDecode } from '../lib/raw/decoder.js'
   import {
     createProject,
     loadProjects,
@@ -298,6 +306,7 @@
   Alpine.data('imageLibrary', () => ({
     projects: [],
     loading: false,
+    decoding: false,
     dragging: false,
 
     async init() {
@@ -328,6 +337,13 @@
       event.target.value = ''
     },
 
+    cancelDecoding() {
+      cancelDecode()
+      this.decoding = false
+      this.loading = false
+      Alpine.store('editor').restoring = false
+    },
+
     async loadNewFile(file) {
       const store = Alpine.store('editor')
       store.clearHistory()
@@ -336,7 +352,9 @@
       this.loading = true
       try {
         if (isRawFile(file)) {
+          this.decoding = true
           const { pixels, width, height } = await decodeRaw(file)
+          this.decoding = false
           const projectId = await createProject(file, true, file.name)
           store.currentProjectId = projectId
           store.rawPixels = pixels
@@ -367,10 +385,13 @@
           )
         }
       } catch (err) {
-        console.error('Failed to load image:', err)
-        alert(`Failed to load image: ${err.message}`)
+        if (err.message !== 'cancelled') {
+          console.error('Failed to load image:', err)
+          alert(`Failed to load image: ${err.message}`)
+        }
         store.filename = ''
       } finally {
+        this.decoding = false
         this.loading = false
       }
     },
@@ -395,7 +416,9 @@
         store.currentProjectId = full.id
 
         if (full.isRaw) {
+          this.decoding = true
           const { pixels, width, height } = await decodeRaw(full.imageBlob)
+          this.decoding = false
           store.rawPixels = pixels
           store.width = width
           store.height = height
@@ -426,10 +449,13 @@
           )
         }
       } catch (err) {
-        console.error('Failed to open project:', err)
-        alert(`Failed to open: ${err.message}`)
+        if (err.message !== 'cancelled') {
+          console.error('Failed to open project:', err)
+          alert(`Failed to open: ${err.message}`)
+        }
         store.hasImage = false
       } finally {
+        this.decoding = false
         store.restoring = false
       }
     },

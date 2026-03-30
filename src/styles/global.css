@@ -4,6 +4,7 @@
 
 @theme {
   --font-mono: 'Space Mono', ui-monospace, monospace;
+  --breakpoint-xs: 375px;
 }
 
 [x-cloak] { display: none !important; }
@@ -55,6 +56,13 @@ button, input[type="range"], select, label[for], [role="button"] {
 
 button:disabled {
   cursor: default;
+}
+
+/* Keyboard focus ring */
+:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.75);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 /* Custom range thumb for webkit */
