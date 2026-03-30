@@ -3,57 +3,63 @@ import Slider from '../Slider.astro'
 ---
 
 <div class="pt-1">
-  <p class="font-mono text-[9px] text-white/25 uppercase tracking-[0.15em] py-2">
+  <p
+    class="font-mono text-[9px] text-white/25 uppercase tracking-[0.15em] py-2"
+  >
     FISHEYE
   </p>
   <Slider
     label="CURVATURE"
     storeKey="$store.editor.lens.curvature"
-    :min="0"
-    :max="1"
-    :step="0.01"
-    :decimals="2"
+    min={0}
+    max={1}
+    step={0.01}
+    decimals={2}
   />
 </div>
 <div class="pt-3">
-  <p class="font-mono text-[9px] text-white/25 uppercase tracking-[0.15em] py-2">
+  <p
+    class="font-mono text-[9px] text-white/25 uppercase tracking-[0.15em] py-2"
+  >
     VIGNETTE
   </p>
   <Slider
     label="AMOUNT"
     storeKey="$store.editor.lens.vignette"
-    :min="0"
-    :max="1"
-    :step="0.01"
-    :decimals="2"
+    min={0}
+    max={1}
+    step={0.01}
+    decimals={2}
   />
   <Slider
     label="SIZE"
     storeKey="$store.editor.lens.vignetteSize"
-    :min="0"
-    :max="1"
-    :step="0.01"
-    :decimals="2"
+    min={-1}
+    max={1}
+    step={0.01}
+    decimals={2}
   />
   <Slider
     label="SOFTNESS"
     storeKey="$store.editor.lens.edgeSoftness"
-    :min="0"
-    :max="1"
-    :step="0.01"
-    :decimals="2"
+    min={0}
+    max={1}
+    step={0.01}
+    decimals={2}
   />
 </div>
 <div class="pt-3 pb-2">
-  <p class="font-mono text-[9px] text-white/25 uppercase tracking-[0.15em] py-2">
+  <p
+    class="font-mono text-[9px] text-white/25 uppercase tracking-[0.15em] py-2"
+  >
     FRINGE
   </p>
   <Slider
     label="AMOUNT"
     storeKey="$store.editor.lens.fringe"
-    :min="0"
-    :max="1"
-    :step="0.01"
-    :decimals="2"
+    min={0}
+    max={1}
+    step={0.01}
+    decimals={2}
   />
 </div>

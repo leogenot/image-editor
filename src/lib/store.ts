@@ -32,22 +32,22 @@ export function createEditorStore(Alpine: Alpine): void {
       vibrance: 0,    // -1 to +1
       saturation: 0,  // -1 to +1
       hsl: {
-        red:     { h: 0, s: 0, l: 0 },
-        orange:  { h: 0, s: 0, l: 0 },
-        yellow:  { h: 0, s: 0, l: 0 },
-        green:   { h: 0, s: 0, l: 0 },
-        aqua:    { h: 0, s: 0, l: 0 },
-        blue:    { h: 0, s: 0, l: 0 },
-        purple:  { h: 0, s: 0, l: 0 },
+        red: { h: 0, s: 0, l: 0 },
+        orange: { h: 0, s: 0, l: 0 },
+        yellow: { h: 0, s: 0, l: 0 },
+        green: { h: 0, s: 0, l: 0 },
+        aqua: { h: 0, s: 0, l: 0 },
+        blue: { h: 0, s: 0, l: 0 },
+        purple: { h: 0, s: 0, l: 0 },
         magenta: { h: 0, s: 0, l: 0 },
       },
     },
     curve: {
       channel: 'rgb',
       rgb: defaultCurvePts(),
-      r:   defaultCurvePts(),
-      g:   defaultCurvePts(),
-      b:   defaultCurvePts(),
+      r: defaultCurvePts(),
+      g: defaultCurvePts(),
+      b: defaultCurvePts(),
     },
     detail: {
       sharpness: 0,
@@ -67,7 +67,7 @@ export function createEditorStore(Alpine: Alpine): void {
     lens: {
       curvature: 0,
       vignette: 0,
-      vignetteSize: 0,
+      vignetteSize: -1,
       fringe: 0,
       edgeSoftness: 0,
     },
@@ -98,9 +98,9 @@ export function createEditorStore(Alpine: Alpine): void {
         curve: {
           channel: this.curve.channel,
           rgb: this.curve.rgb.map(p => [...p]),
-          r:   this.curve.r.map(p => [...p]),
-          g:   this.curve.g.map(p => [...p]),
-          b:   this.curve.b.map(p => [...p]),
+          r: this.curve.r.map(p => [...p]),
+          g: this.curve.g.map(p => [...p]),
+          b: this.curve.b.map(p => [...p]),
         },
         detail: this.detail,
         frame: { ...this.frame },
@@ -137,9 +137,9 @@ export function createEditorStore(Alpine: Alpine): void {
         const legacy = (state.curve as Record<string, unknown>).points as CurvePoint[] | undefined
         this.curve.channel = state.curve.channel ?? 'rgb'
         this.curve.rgb = state.curve.rgb ?? (legacy ? legacy.map(p => [...p] as CurvePoint) : defaultPts)
-        this.curve.r   = state.curve.r   ?? defaultCurvePts()
-        this.curve.g   = state.curve.g   ?? defaultCurvePts()
-        this.curve.b   = state.curve.b   ?? defaultCurvePts()
+        this.curve.r = state.curve.r ?? defaultCurvePts()
+        this.curve.g = state.curve.g ?? defaultCurvePts()
+        this.curve.b = state.curve.b ?? defaultCurvePts()
       }
       if (state.detail) Object.assign(this.detail, state.detail)
       if (state.crop) Object.assign(this.crop, state.crop)
@@ -176,9 +176,9 @@ export function createEditorStore(Alpine: Alpine): void {
         Object.assign(this.color.hsl[key], { h: 0, s: 0, l: 0 })
       }
       this.curve.rgb = defaultCurvePts()
-      this.curve.r   = defaultCurvePts()
-      this.curve.g   = defaultCurvePts()
-      this.curve.b   = defaultCurvePts()
+      this.curve.r = defaultCurvePts()
+      this.curve.g = defaultCurvePts()
+      this.curve.b = defaultCurvePts()
       Object.assign(this.detail, { sharpness: 0, noiseReduction: 0, grain: 0, grainSize: 1 })
       Object.assign(this.frame, { thickness: 0, color: '#ffffff' })
       Object.assign(this.lens, { curvature: 0, vignette: 0, vignetteSize: 0, fringe: 0, edgeSoftness: 0 })
