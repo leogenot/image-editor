@@ -82,6 +82,7 @@ const bipolar = Number(min) < 0
     <input
       type="range"
       class="absolute inset-0 w-full h-full opacity-0 cursor-pointer touch-none"
+      aria-label={label}
       :min={`${min}`}
       :max={`${max}`}
       :step={`${step}`}

@@ -68,6 +68,25 @@ const siteUrl = 'https://leogenot.github.io/image-editor'
     @keydown.meta.shift.z.window.prevent="$store.editor.redo()"
     @keydown.ctrl.y.window.prevent="$store.editor.redo()"
   >
+  <script>
+    // Keyboard zoom: +/= zoom in, - zoom out, 0 fit to screen
+    // Guard against firing when typing in an input
+    window.addEventListener('keydown', e => {
+      if (e.target.closest('input, textarea, [contenteditable]')) return
+      const store = window.Alpine?.store('editor')
+      if (!store?.hasImage || store.exportOpen) return
+      if (e.key === '+' || e.key === '=') {
+        e.preventDefault()
+        window.dispatchEvent(new CustomEvent('canvas:zoomIn'))
+      } else if (e.key === '-') {
+        e.preventDefault()
+        window.dispatchEvent(new CustomEvent('canvas:zoomOut'))
+      } else if (e.key === '0') {
+        e.preventDefault()
+        window.dispatchEvent(new CustomEvent('canvas:fitToScreen'))
+      }
+    })
+  </script>
     <ImageLibrary />
     <Canvas />
     <Toolbar />

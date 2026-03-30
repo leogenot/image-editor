@@ -183,7 +183,9 @@
           <img
             x-show="project.preview"
             :src="project.preview"
+            :alt="`${project.filename} preview`"
             class="absolute inset-0 w-full h-full object-cover"
+            loading="lazy"
             draggable="false"
           />
           <!-- Placeholder (no preview yet) -->

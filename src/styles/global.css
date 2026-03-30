@@ -57,6 +57,13 @@ button:disabled {
   cursor: default;
 }
 
+/* Keyboard focus ring */
+:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.75);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
 /* Custom range thumb for webkit */
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;

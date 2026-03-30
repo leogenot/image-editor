@@ -407,6 +407,19 @@
         this.$nextTick(() => this.fitToScreen())
       })
 
+      // Keyboard zoom events (dispatched from index.astro keydown handler)
+      window.addEventListener('canvas:zoomIn', () => {
+        this.zoom = Math.min(30, this.zoom * 1.2)
+        this._onPanZoom()
+      })
+      window.addEventListener('canvas:zoomOut', () => {
+        this.zoom = Math.max(0.05, this.zoom / 1.2)
+        this._onPanZoom()
+      })
+      window.addEventListener('canvas:fitToScreen', () => {
+        this.fitToScreen()
+      })
+
       // Gesture setup
       const container = this.$el
       setupGestures(container, {
