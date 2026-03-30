@@ -110,6 +110,12 @@ export async function deleteProject(id: string): Promise<void> {
   await del(`${PROJECT_PREFIX}${id}`)
 }
 
+export async function clearAllProjects(): Promise<void> {
+  const all = await keys()
+  const projectKeys = all.filter(k => typeof k === 'string' && k.startsWith(PROJECT_PREFIX))
+  await Promise.all(projectKeys.map(k => del(k)))
+}
+
 // ── Legacy helpers (kept for backwards compat, no longer actively used) ───────
 
 export async function saveLastImage(): Promise<void> { /* no-op */ }
