@@ -106,13 +106,22 @@ Alpine.data('curveEditor', () => ({
 
   // Generates SVG circle markup for control points.
   // x-html on a <g> sets innerHTML in SVG context, so circles parse correctly.
+  // Each point gets a large transparent hit area (r=18) for easier touch targeting,
+  // plus a selection ring when the point is actively being dragged.
   get renderPointsSvg() {
     const color = this.channelColor
-    const r = 4
-    return this.currentPoints.map(pt => {
-      const cx = Math.max(r, Math.min(256 - r, pt[0] * 256)).toFixed(2)
-      const cy = Math.max(r, Math.min(256 - r, (1 - pt[1]) * 256)).toFixed(2)
-      return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#000" stroke="${color}" stroke-width="1.5"/>`
+    return this.currentPoints.map((pt, i) => {
+      const cx = Math.max(4, Math.min(252, pt[0] * 256)).toFixed(2)
+      const cy = Math.max(4, Math.min(252, (1 - pt[1]) * 256)).toFixed(2)
+      const active = i === this._draggingIndex
+      const r = active ? 6 : 4
+      const sw = active ? 2 : 1.5
+      const ring = active
+        ? `<circle cx="${cx}" cy="${cy}" r="11" fill="none" stroke="${color}" stroke-opacity="0.35" stroke-width="1.5"/>`
+        : ''
+      // Transparent hit-area circle (touch-friendly)
+      const hit = `<circle cx="${cx}" cy="${cy}" r="18" fill="transparent"/>`
+      return `${hit}${ring}<circle cx="${cx}" cy="${cy}" r="${r}" fill="#000" stroke="${color}" stroke-width="${sw}"/>`
     }).join('')
   },
 
@@ -147,7 +156,7 @@ Alpine.data('curveEditor', () => ({
   // Double-click on a point removes it.
   onMouseDown(e) {
     const [x, y] = this.getSvgPoint(e.clientX, e.clientY)
-    const idx = this._findNearest(x, y, 0.06)
+    const idx = this._findNearest(x, y, 0.07)
     if (e.detail === 2) {
       if (idx !== -1) this.removePoint(idx)
       return
@@ -174,13 +183,13 @@ Alpine.data('curveEditor', () => ({
     const [x, y] = this.getSvgPoint(e.touches[0].clientX, e.touches[0].clientY)
     const now = Date.now()
     if (now - this._lastTapTime < 300) {
-      const idx = this._findNearest(x, y, 0.08)
+      const idx = this._findNearest(x, y, 0.10)
       if (idx !== -1) this.removePoint(idx)
       this._lastTapTime = 0
       return
     }
     this._lastTapTime = now
-    const idx = this._findNearest(x, y, 0.08)
+    const idx = this._findNearest(x, y, 0.10)
     if (idx !== -1) {
       this._draggingIndex = idx
     } else {
