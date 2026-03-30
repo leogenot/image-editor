@@ -48,6 +48,15 @@ button, input[type="range"] {
   -webkit-user-select: none;
 }
 
+/* Pointer cursor on all interactive controls */
+button, input[type="range"], select, label[for], [role="button"] {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: default;
+}
+
 /* Custom range thumb for webkit */
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
