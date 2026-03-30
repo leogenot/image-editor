@@ -253,7 +253,7 @@ void main() {
     color.b = texture(u_curveLUT_b, vec2(color.b, 0.5)).b;
   }
 
-  color = aces(color);
+  if (u_isFloat) color = aces(color);
   color = linearToSrgb(color);
 
   // Film grain — static noise based on original UV, applied in sRGB space
