@@ -10,13 +10,13 @@
   x-cloak
   style="top: max(16px, env(safe-area-inset-top))"
 >
-  <!-- Filename -->
+  <!-- Filename (hidden on very small screens to prevent overflow) -->
   <span
-    class="font-mono text-[10px] text-white/60 uppercase tracking-widest min-w-0 truncate"
+    class="hidden xs:inline font-mono text-[10px] text-white/60 uppercase tracking-widest min-w-0 truncate"
     x-text="$store.editor.filename.replace(/\.[^.]+$/, '').toUpperCase().slice(0, 16)"
   ></span>
 
-  <div class="w-px h-3 bg-white/10 mx-1"></div>
+  <div class="hidden xs:block w-px h-3 bg-white/10 mx-1"></div>
 
   <!-- Undo -->
   <button

@@ -4,6 +4,7 @@
 
 @theme {
   --font-mono: 'Space Mono', ui-monospace, monospace;
+  --breakpoint-xs: 375px;
 }
 
 [x-cloak] { display: none !important; }
