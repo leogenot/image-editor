@@ -104,7 +104,7 @@ export class Renderer {
       'u_angle', 'u_aspectRatio',
       'u_grain', 'u_grainSize', 'u_borderThickness', 'u_borderColor',
       'u_cropX', 'u_cropY', 'u_cropW', 'u_cropH',
-      'u_curvature', 'u_vignette', 'u_fringe', 'u_edgeSoftness',
+      'u_curvature', 'u_vignette', 'u_vignetteSize', 'u_fringe', 'u_edgeSoftness',
     ]) {
       this._u[name] = gl.getUniformLocation(this.program, name)
     }
@@ -332,6 +332,7 @@ export class Renderer {
     const lens = state.lens ?? {}
     gl.uniform1f(u['u_curvature'],    lens.curvature    ?? 0)
     gl.uniform1f(u['u_vignette'],     lens.vignette     ?? 0)
+    gl.uniform1f(u['u_vignetteSize'], lens.vignetteSize ?? 0)
     gl.uniform1f(u['u_fringe'],       lens.fringe       ?? 0)
     gl.uniform1f(u['u_edgeSoftness'], lens.edgeSoftness ?? 0)
 

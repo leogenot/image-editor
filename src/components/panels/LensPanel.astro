@@ -28,6 +28,14 @@ import Slider from '../Slider.astro'
     :decimals="2"
   />
   <Slider
+    label="SIZE"
+    storeKey="$store.editor.lens.vignetteSize"
+    :min="0"
+    :max="1"
+    :step="0.01"
+    :decimals="2"
+  />
+  <Slider
     label="SOFTNESS"
     storeKey="$store.editor.lens.edgeSoftness"
     :min="0"

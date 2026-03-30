@@ -51,10 +51,11 @@ export interface FrameSettings {
 }
 
 export interface LensSettings {
-  curvature: number    // fisheye barrel distortion, 0 to 1
-  vignette: number     // circular black mask strength, 0 to 1
-  fringe: number       // chromatic aberration at edges, 0 to 1
-  edgeSoftness: number // vignette mask edge softness, 0 to 1
+  curvature: number      // fisheye barrel distortion, 0 to 1
+  vignette: number       // circular black mask strength, 0 to 1
+  vignetteSize: number   // vignette ring radius: 0 = outside frame, 1 = center
+  fringe: number         // chromatic aberration at edges, 0 to 1
+  edgeSoftness: number   // vignette mask edge softness, 0 to 1
 }
 
 export interface CropSettings {

@@ -38,10 +38,11 @@ uniform float u_cropY;
 uniform float u_cropW;
 uniform float u_cropH;
 
-uniform float u_curvature;    // fisheye barrel distortion, 0 to 1
-uniform float u_vignette;     // circular black mask strength, 0 to 1
-uniform float u_fringe;       // chromatic aberration at edges, 0 to 1
-uniform float u_edgeSoftness; // vignette mask edge softness, 0 to 1
+uniform float u_curvature;     // fisheye barrel distortion, 0 to 1
+uniform float u_vignette;      // circular black mask strength, 0 to 1
+uniform float u_vignetteSize;  // vignette ring radius: 0 = outside frame, 1 = center
+uniform float u_fringe;        // chromatic aberration at edges, 0 to 1
+uniform float u_edgeSoftness;  // vignette falloff width, 0 to 1
 
 float grainHash(vec2 st) {
   return fract(sin(dot(st, vec2(12.9898, 78.233))) * 43758.5453);
@@ -114,7 +115,7 @@ float hueMask(float h, float center, float width) {
 void main() {
   vec2 tc = v_texCoord;
 
-  // Border: drawn relative to the crop region, equal pixel width on all sides
+  // Border: image scales down uniformly inside the frame (preserves aspect ratio)
   if (u_borderThickness > 0.001) {
     // Convert fragment UV to crop-relative space [0, 1]
     float relX = (tc.x - u_cropX) / u_cropW;
@@ -122,21 +123,16 @@ void main() {
 
     // Only apply border logic within the crop region
     if (relX >= 0.0 && relX <= 1.0 && relY >= 0.0 && relY <= 1.0) {
-      // Pixel aspect ratio of the crop region
-      float cropAr = (u_cropW / u_cropH) * u_aspectRatio;
+      float t = u_borderThickness;
 
-      // Equal-pixel-width border in crop-relative UV
-      float tx = cropAr >= 1.0 ? u_borderThickness / cropAr : u_borderThickness;
-      float ty = cropAr >= 1.0 ? u_borderThickness : u_borderThickness * cropAr;
-
-      if (relX < tx || relX > 1.0 - tx || relY < ty || relY > 1.0 - ty) {
+      if (relX < t || relX > 1.0 - t || relY < t || relY > 1.0 - t) {
         outColor = vec4(u_borderColor, 1.0);
         return;
       }
 
-      // Remap to scale the crop content down inside the border
-      float innerRelX = (relX - tx) / (1.0 - 2.0 * tx);
-      float innerRelY = (relY - ty) / (1.0 - 2.0 * ty);
+      // Remap inner area uniformly — same scale in x and y, no squish
+      float innerRelX = (relX - t) / (1.0 - 2.0 * t);
+      float innerRelY = (relY - t) / (1.0 - 2.0 * t);
       tc.x = u_cropX + innerRelX * u_cropW;
       tc.y = u_cropY + innerRelY * u_cropH;
     }
@@ -158,14 +154,15 @@ void main() {
     }
   }
 
-  // Fisheye barrel distortion
+  // Fisheye barrel distortion — centered on crop region
   if (u_curvature > 0.001) {
-    vec2 centered = tc - 0.5;
+    vec2 cropCenter = vec2(u_cropX + u_cropW * 0.5, u_cropY + u_cropH * 0.5);
+    vec2 centered = tc - cropCenter;
     centered.x *= u_aspectRatio;
     float r2 = dot(centered, centered);
     centered *= 1.0 + u_curvature * r2;
     centered.x /= u_aspectRatio;
-    tc = centered + 0.5;
+    tc = centered + cropCenter;
     if (tc.x < 0.0 || tc.x > 1.0 || tc.y < 0.0 || tc.y > 1.0) {
       outColor = vec4(0.0, 0.0, 0.0, 1.0);
       return;
@@ -266,13 +263,17 @@ void main() {
     color += vec3(noise * u_grain * 0.15);
   }
 
-  // Circular vignette — computed in output space (v_texCoord) for a true lens mask
+  // Circular vignette — centered on crop region, normalized so distance 1 = crop edge
   if (u_vignette > 0.001) {
-    vec2 vigCoord = (v_texCoord - 0.5) * 2.0;
-    vigCoord.x *= u_aspectRatio;
+    vec2 cropCenter = vec2(u_cropX + u_cropW * 0.5, u_cropY + u_cropH * 0.5);
+    vec2 vigCoord = (v_texCoord - cropCenter) * 2.0 / vec2(u_cropW, u_cropH);
+    vigCoord.x *= (u_cropW / u_cropH) * u_aspectRatio;
     float vigDist = length(vigCoord);
-    float inner = 1.0 - mix(0.05, 0.7, u_edgeSoftness);
-    float vigMask = smoothstep(inner, 1.0, vigDist);
+    // vignetteSize=0: ring outside frame (invisible), 1: ring at center (full coverage)
+    float outerR = mix(1.3, 0.0, u_vignetteSize);
+    float softnessW = mix(0.02, 0.8, u_edgeSoftness);
+    float innerR = outerR - softnessW;
+    float vigMask = smoothstep(innerR, max(innerR + 0.001, outerR), vigDist);
     color = mix(color, vec3(0.0), vigMask * u_vignette);
   }
 

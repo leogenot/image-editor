@@ -67,6 +67,7 @@ export function createEditorStore(Alpine: Alpine): void {
     lens: {
       curvature: 0,
       vignette: 0,
+      vignetteSize: 0,
       fringe: 0,
       edgeSoftness: 0,
     },
@@ -180,7 +181,7 @@ export function createEditorStore(Alpine: Alpine): void {
       this.curve.b   = defaultCurvePts()
       Object.assign(this.detail, { sharpness: 0, noiseReduction: 0, grain: 0, grainSize: 1 })
       Object.assign(this.frame, { thickness: 0, color: '#ffffff' })
-      Object.assign(this.lens, { curvature: 0, vignette: 0, fringe: 0, edgeSoftness: 0 })
+      Object.assign(this.lens, { curvature: 0, vignette: 0, vignetteSize: 0, fringe: 0, edgeSoftness: 0 })
       this.pushHistory()
       window.dispatchEvent(new CustomEvent('editor:render'))
     },
