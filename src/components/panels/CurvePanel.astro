@@ -108,9 +108,12 @@ Alpine.data('curveEditor', () => ({
   // x-html on a <g> sets innerHTML in SVG context, so circles parse correctly.
   get renderPointsSvg() {
     const color = this.channelColor
-    return this.currentPoints.map(pt =>
-      `<circle cx="${(pt[0] * 256).toFixed(2)}" cy="${((1 - pt[1]) * 256).toFixed(2)}" r="4" fill="#000" stroke="${color}" stroke-width="1.5"/>`
-    ).join('')
+    const r = 4
+    return this.currentPoints.map(pt => {
+      const cx = Math.max(r, Math.min(256 - r, pt[0] * 256)).toFixed(2)
+      const cy = Math.max(r, Math.min(256 - r, (1 - pt[1]) * 256)).toFixed(2)
+      return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#000" stroke="${color}" stroke-width="1.5"/>`
+    }).join('')
   },
 
   buildPath(ch) {
