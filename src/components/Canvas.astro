@@ -48,7 +48,7 @@
   <div
     class="absolute top-[72px] md:top-4 flex flex-col gap-1.5"
     x-show="$store.editor.activePanel !== 'crop'"
-    :style="`left: ${showMinimap ? minimapSize.w + 24 : 16}px`"
+    :style="`left: ${showMinimap && $el.clientWidth >= 768 ? minimapSize.w + 24 : 16}px`"
   >
     <template x-for="bg in [{key:'black',color:'#000',border:'rgba(255,255,255,0.25)'},{key:'grey',color:'#777',border:'rgba(255,255,255,0.25)'},{key:'white',color:'#fff',border:'rgba(0,0,0,0.25)'}]" :key="bg.key">
       <button
