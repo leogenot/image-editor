@@ -9,16 +9,16 @@
     "astro": "astro"
   },
   "dependencies": {
-    "@alpinejs/collapse": "^3.15.8",
-    "@astrojs/alpinejs": "^0.4.9",
+    "@alpinejs/collapse": "^3.15.9",
+    "@astrojs/alpinejs": "^0.5.0",
     "@fontsource/space-mono": "^5.2.9",
-    "alpinejs": "^3.15.8",
-    "astro": "^5.17.3",
+    "alpinejs": "^3.15.9",
+    "astro": "^6.1.1",
     "idb-keyval": "^6.2.2",
     "libraw-wasm": "^1.1.2"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.2.1",
-    "tailwindcss": "^4.2.1"
+    "@tailwindcss/vite": "^4.2.2",
+    "tailwindcss": "^4.2.2"
   }
 }
