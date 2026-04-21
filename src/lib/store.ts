@@ -103,6 +103,7 @@ export function createEditorStore(Alpine: Alpine): void {
           b: this.curve.b.map(p => [...p]),
         },
         detail: this.detail,
+        crop: { ...this.crop },
         frame: { ...this.frame },
         lens: { ...this.lens },
       })
@@ -175,13 +176,15 @@ export function createEditorStore(Alpine: Alpine): void {
       for (const key of Object.keys(this.color.hsl) as HSLKey[]) {
         Object.assign(this.color.hsl[key], { h: 0, s: 0, l: 0 })
       }
+      this.curve.channel = 'rgb'
       this.curve.rgb = defaultCurvePts()
       this.curve.r = defaultCurvePts()
       this.curve.g = defaultCurvePts()
       this.curve.b = defaultCurvePts()
       Object.assign(this.detail, { sharpness: 0, noiseReduction: 0, grain: 0, grainSize: 1 })
+      Object.assign(this.crop, { x: 0, y: 0, w: 1, h: 1, angle: 0, ratio: 'free' })
       Object.assign(this.frame, { thickness: 0, color: '#ffffff' })
-      Object.assign(this.lens, { curvature: 0, vignette: 0, vignetteSize: 0, fringe: 0, edgeSoftness: 0 })
+      Object.assign(this.lens, { curvature: 0, vignette: 0, vignetteSize: -1, fringe: 0, edgeSoftness: 0 })
       this.pushHistory()
       window.dispatchEvent(new CustomEvent('editor:render'))
     },
