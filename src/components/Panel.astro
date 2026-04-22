@@ -55,7 +55,12 @@
   </div>
 
   <!-- Scrollable panel content -->
-  <div class="flex-1 overflow-y-auto overscroll-contain px-4 py-1" x-show="!collapsed" x-collapse>
+  <div
+    class="flex-1 overflow-y-auto overscroll-contain px-4 py-1"
+    style="padding-bottom: max(8px, env(safe-area-inset-bottom));"
+    x-show="!collapsed"
+    x-collapse
+  >
 
     <div x-show="$store.editor.activePanel === 'light'">
       <slot name="light" />

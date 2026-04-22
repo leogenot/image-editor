@@ -20,6 +20,7 @@ const siteDescription =
 const siteKeywords =
   'online image editor, photo editor, color grading, photo filters, curves adjustment, crop photo, browser-based photo editor, free photo editing'
 const siteUrl = 'https://leogenot.github.io/image-editor'
+const base = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + '/'
 ---
 
 <!doctype html>
@@ -52,13 +53,17 @@ const siteUrl = 'https://leogenot.github.io/image-editor'
     <meta name="theme-color" content="#000000" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="DarkRoom" />
+    <meta name="application-name" content="DarkRoom" />
+    <meta name="format-detection" content="telephone=no" />
     <meta
       name="apple-mobile-web-app-status-bar-style"
       content="black-translucent"
     />
 
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/svg+xml" href={`${base}favicon.svg`} />
+    <link rel="apple-touch-icon" href={`${base}apple-touch-icon.png`} />
+    <link rel="manifest" href={`${base}manifest.webmanifest`} />
   </head>
   <body
     class="w-screen h-dvh overflow-hidden bg-black relative"
@@ -68,6 +73,10 @@ const siteUrl = 'https://leogenot.github.io/image-editor'
     @keydown.meta.shift.z.window.prevent="$store.editor.redo()"
     @keydown.ctrl.y.window.prevent="$store.editor.redo()"
   >
+    <script>
+      import { registerPwa } from '../lib/pwa'
+      registerPwa()
+    </script>
     <script>
       // Keyboard zoom: +/= zoom in, - zoom out, 0 fit to screen
       // Guard against firing when typing in an input

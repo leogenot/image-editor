@@ -323,6 +323,12 @@
           this.projects = await loadProjects()
         }
       })
+
+      // PWA entrypoints (share_target, file_handlers) deliver files here
+      window.addEventListener('editor:openFile', async (e) => {
+        const file = e.detail?.file
+        if (file instanceof File) await this.loadNewFile(file)
+      })
     },
 
     async handleDrop(event) {

@@ -12,7 +12,20 @@
       "Bash(pnpm build:*)",
       "Bash(git checkout:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(sips --help)",
+      "Bash(sips -s format png /Users/leo/Sites/image-editor/public/favicon.svg --out /tmp/test-pwa.png -Z 192)",
+      "Bash(sips -s format png /tmp/icon-any.svg --out icon-192.png -Z 192)",
+      "Bash(sips -s format png /tmp/icon-any.svg --out icon-512.png -Z 512)",
+      "Bash(sips -s format png /tmp/icon-maskable.svg --out icon-maskable-192.png -Z 192)",
+      "Bash(sips -s format png /tmp/icon-maskable.svg --out icon-maskable-512.png -Z 512)",
+      "Bash(sips -s format png /tmp/icon-any.svg --out apple-touch-icon.png -Z 180)",
+      "Bash(pnpm astro *)",
+      "Bash(pnpm preview *)",
+      "Bash(curl -s http://127.0.0.1:4322/manifest.webmanifest)",
+      "Bash(curl -sI http://127.0.0.1:4322/sw.js)",
+      "Bash(curl -sI http://127.0.0.1:4322/icon-192.png)",
+      "Bash(pkill -f \"astro preview\")"
     ]
   }
 }
